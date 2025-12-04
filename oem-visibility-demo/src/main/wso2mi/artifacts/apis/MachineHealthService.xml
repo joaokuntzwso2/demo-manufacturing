@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api xmlns="http://ws.apache.org/ns/synapse"
+     name="MachineHealthService"
+     context="/internal/machine-health">
+
+    <resource methods="POST" uri-template="/telemetry">
+        <inSequence>
+
+            <log level="custom">
+                <property name="MachineHealthService"
+                          value="HTTP telemetry ingestion"/>
+            </log>
+
+            <!-- Normalize HTTP telemetry to canonical model -->
+            <!-- Expected input payload:
+                 {
+                   "machine": "...",
+                   "plant": "...",
+                   "ts": "...",
+                   "temperature": 40.5,
+                   "vibration": 0.02
+                 }
+            -->
+            <payloadFactory media-type="json">
+                <format>
+{
+  "machineId": "$1",
+  "plantId": "$2",
+  "timestamp": "$3",
+  "temp": $4,
+  "vibration": $5
+}
+                </format>
+                <args>
+                    <arg evaluator="json" expression="$.machine"/>
+                    <arg evaluator="json" expression="$.plant"/>
+                    <arg evaluator="json" expression="$.ts"/>
+                    <arg evaluator="json" expression="$.temperature"/>
+                    <arg evaluator="json" expression="$.vibration"/>
+                </args>
+            </payloadFactory>
+
+            <property name="messageType"
+                      value="application/json"
+                      scope="axis2"/>
+
+            <!-- Call telemetry store backend (same as MQTT flow) -->
+            <call>
+                <endpoint>
+                    <http method="post"
+                          uri-template="http://localhost:9100/telemetry">
+                        <suspendOnFailure>
+                            <initialDuration>-1</initialDuration>
+                            <progressionFactor>-1</progressionFactor>
+                            <maximumDuration>0</maximumDuration>
+                        </suspendOnFailure>
+                        <markForSuspension>
+                            <retriesBeforeSuspension>0</retriesBeforeSuspension>
+                        </markForSuspension>
+                    </http>
+                </endpoint>
+            </call>
+
+            <!-- Ignore backend response; return our own ack -->
+            <payloadFactory media-type="json">
+                <format>
+{
+  "status": "accepted",
+  "message": "Telemetry received"
+}
+                </format>
+                <args/>
+            </payloadFactory>
+
+            <property name="messageType"
+                      value="application/json"
+                      scope="axis2"/>
+
+            <respond/>
+        </inSequence>
+
+        <outSequence/>
+        <faultSequence>
+            <log level="full"/>
+            <drop/>
+        </faultSequence>
+    </resource>
+</api>

@@ -1,0 +1,52 @@
+# === Node.js ===
+backend/docker/**/node_modules/
+backend/docker/**/npm-debug.log
+backend/docker/**/yarn-error.log
+backend/docker/**/.env
+backend/docker/**/package-lock.json
+backend/docker/**/yarn.lock
+
+
+# === VSCode / IDE ===
+.vscode/
+.idea/
+*.iml
+
+# === macOS ===
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# === Maven ===
+oem-visibility-demo/target/
+oem-visibility-demo/.settings/
+oem-visibility-demo/.classpath
+oem-visibility-demo/.project
+
+# === WSO2 Deployment artifacts ===
+# (these are generated, not source)
+oem-visibility-demo/deployment/libs/*.jar
+oem-visibility-demo/deployment/docker/resources/*.jks
+
+# === Docker ===
+backend/docker/telemetry-store/node_modules
+backend/docker/erp-service/node_modules
+backend/docker/mes-service/node_modules
+
+# Avoid committing mosquitto persistence files
+backend/docker/mqtt-broker/data/
+backend/docker/mqtt-broker/log/
+
+# === Logs ===
+**/*.log
+
+# === Build artifacts ===
+*.car
+*.zip
+*.tar
+*.gz
+
+# === Temporary ===
+tmp/
+temp/
+*.tmp

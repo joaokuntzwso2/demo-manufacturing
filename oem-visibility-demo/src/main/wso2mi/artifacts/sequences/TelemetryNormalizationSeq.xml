@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence xmlns="http://ws.apache.org/ns/synapse"
+          name="TelemetryNormalizationSeq">
+
+    <log level="custom">
+        <property name="TelemetryNormalizationSeq"
+                  value="Normalizing telemetry message from MQTT"/>
+    </log>
+
+    <!-- Build normalized JSON telemetry payload -->
+    <!-- Expected incoming payload:
+         {
+           "machine": "...",
+           "plant": "...",
+           "ts": "...",
+           "temperature": 40.5,
+           "vibration": 0.02
+         }
+    -->
+    <payloadFactory media-type="json">
+        <format>
+{
+  "machineId": "$1",
+  "plantId": "$2",
+  "timestamp": "$3",
+  "temp": $4,
+  "vibration": $5
+}
+        </format>
+        <args>
+            <arg evaluator="json" expression="$.machine"/>
+            <arg evaluator="json" expression="$.plant"/>
+            <arg evaluator="json" expression="$.ts"/>
+            <arg evaluator="json" expression="$.temperature"/>
+            <arg evaluator="json" expression="$.vibration"/>
+        </args>
+    </payloadFactory>
+
+    <property name="messageType"
+              value="application/json"
+              scope="axis2"/>
+
+    <!-- Forward normalized telemetry to HTTP telemetry store -->
+    <send>
+        <endpoint>
+            <http method="post"
+                  uri-template="http://localhost:9100/telemetry">
+                <suspendOnFailure>
+                    <initialDuration>-1</initialDuration>
+                    <progressionFactor>-1</progressionFactor>
+                    <maximumDuration>0</maximumDuration>
+                </suspendOnFailure>
+                <markForSuspension>
+                    <retriesBeforeSuspension>0</retriesBeforeSuspension>
+                </markForSuspension>
+            </http>
+        </endpoint>
+    </send>
+</sequence>
