@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api xmlns="http://ws.apache.org/ns/synapse"
+     name="OrderCompositeAPI"
+     context="/internal/orders">
+
+    <!-- Composite resource: combines ERP + MES into one payload
+         GET /internal/orders/orders/{id}
+    -->
+    <resource methods="GET" uri-template="/orders/{id}">
+        <inSequence>
+
+            <!-- 1) Context enrichment -->
+            <property name="orderId"
+                      expression="get-property('uri.var.id')"
+                      scope="default"
+                      type="STRING"/>
+
+            <log level="custom">
+                <property name="OrderCompositeAPI" value="Start composite order fetch"/>
+                <property name="orderId" expression="get-property('orderId')"/>
+                <property name="correlationId" expression="get-property('CorrelationId')"/>
+            </log>
+
+            <!-- 2) ERP call: http://erp-service:9001/erp/orders/{id} -->
+            <log level="custom">
+                <property name="OrderCompositeAPI" value="Invoking ERP backend"/>
+                <property name="orderId" expression="get-property('orderId')"/>
+            </log>
+
+            <call>
+                <endpoint key="ERPServiceEP"/>
+            </call>
+
+            <property name="messageType"
+                      value="application/json"
+                      scope="axis2"/>
+
+            <!-- Store ERP JSON payload (as string) -->
+            <enrich>
+                <source type="body"/>
+                <target type="property" property="ERP_RAW"/>
+            </enrich>
+
+            <log level="custom">
+                <property name="OrderCompositeAPI" value="After ERP call"/>
+                <property name="orderId" expression="get-property('orderId')"/>
+                <property name="erpRawProp" expression="get-property('ERP_RAW')"/>
+            </log>
+
+            <!-- 3) MES call: http://mes-service:9002/mes/orders/{id} -->
+            <log level="custom">
+                <property name="OrderCompositeAPI" value="Invoking MES backend"/>
+                <property name="orderId" expression="get-property('orderId')"/>
+            </log>
+
+            <call>
+                <endpoint key="MESServiceEP"/>
+            </call>
+
+            <property name="messageType"
+                      value="application/json"
+                      scope="axis2"/>
+
+            <!-- Store MES JSON payload (as string) -->
+            <enrich>
+                <source type="body"/>
+                <target type="property" property="MES_RAW"/>
+            </enrich>
+
+            <log level="custom">
+                <property name="OrderCompositeAPI" value="After MES call, before aggregation"/>
+                <property name="orderId" expression="get-property('orderId')"/>
+                <property name="erpRawProp" expression="get-property('ERP_RAW')"/>
+                <property name="mesRawProp" expression="get-property('MES_RAW')"/>
+            </log>
+
+            <!-- 4) Composite JSON response: orderId + erpRaw + mesRaw -->
+            <property name="messageType"
+                      value="application/json"
+                      scope="axis2"/>
+
+            <payloadFactory media-type="json">
+                <format>
+{
+  "orderId": "$1",
+  "erpRaw": $2,
+  "mesRaw": $3
+}
+                </format>
+                <args>
+                    <!-- orderId -->
+                    <arg evaluator="xml"
+                         expression="get-property('orderId')"/>
+
+                    <!-- full ERP JSON -->
+                    <arg evaluator="xml"
+                         expression="get-property('ERP_RAW')"/>
+
+                    <!-- full MES JSON -->
+                    <arg evaluator="xml"
+                         expression="get-property('MES_RAW')"/>
+                </args>
+            </payloadFactory>
+
+            <log level="custom">
+                <property name="OrderCompositeAPI" value="Final composite response"/>
+                <property name="combinedJson" expression="json-eval($)"/>
+            </log>
+
+            <respond/>
+        </inSequence>
+
+        <outSequence/>
+        <faultSequence>
+            <log level="full">
+                <property name="OrderCompositeAPI" value="FAULT in composite order flow"/>
+            </log>
+            <drop/>
+        </faultSequence>
+    </resource>
+</api>

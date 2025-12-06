@@ -1,0 +1,8 @@
+[package]
+org = "joaoluiskuntz"
+name = "oem_visibility_agent"
+version = "0.1.0"
+title = "oem-visibility-agent"
+
+[build-options]
+sticky = true

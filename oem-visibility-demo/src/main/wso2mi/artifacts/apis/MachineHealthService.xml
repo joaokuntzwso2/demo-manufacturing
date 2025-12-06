@@ -3,6 +3,10 @@
      name="MachineHealthService"
      context="/internal/machine-health">
 
+    <!-- ==========================================================
+         1) HTTP telemetry ingestion
+         POST /internal/machine-health/telemetry
+       ========================================================== -->
     <resource methods="POST" uri-template="/telemetry">
         <inSequence>
 
@@ -12,15 +16,6 @@
             </log>
 
             <!-- Normalize HTTP telemetry to canonical model -->
-            <!-- Expected input payload:
-                 {
-                   "machine": "...",
-                   "plant": "...",
-                   "ts": "...",
-                   "temperature": 40.5,
-                   "vibration": 0.02
-                 }
-            -->
             <payloadFactory media-type="json">
                 <format>
 {
@@ -44,11 +39,11 @@
                       value="application/json"
                       scope="axis2"/>
 
-            <!-- Call telemetry store backend (same as MQTT flow) -->
+            <!-- Call telemetry store backend -->
             <call>
                 <endpoint>
                     <http method="post"
-                          uri-template="http://localhost:9100/telemetry">
+                          uri-template="http://telemetry-store:9100/telemetry">
                         <suspendOnFailure>
                             <initialDuration>-1</initialDuration>
                             <progressionFactor>-1</progressionFactor>
@@ -85,4 +80,72 @@
             <drop/>
         </faultSequence>
     </resource>
+
+    <!-- ==========================================================
+         2) Latest readings per machine
+         GET /internal/machine-health/telemetry/last-readings
+       ========================================================== -->
+    <resource methods="GET" uri-template="/telemetry/last-readings">
+        <inSequence>
+
+            <log level="custom">
+                <property name="MachineHealthService"
+                          value="GET last telemetry readings (per machine)"/>
+            </log>
+
+            <!-- NOTE: backend path is /last-readings (no /telemetry) -->
+            <call>
+                <endpoint>
+                    <http method="get"
+                          uri-template="http://telemetry-store:9100/last-readings"/>
+                </endpoint>
+            </call>
+
+            <property name="messageType"
+                      value="application/json"
+                      scope="axis2"/>
+
+            <respond/>
+        </inSequence>
+
+        <outSequence/>
+        <faultSequence>
+            <log level="full"/>
+            <drop/>
+        </faultSequence>
+    </resource>
+
+    <!-- ==========================================================
+         3) Plant-level summary
+         GET /internal/machine-health/summary
+       ========================================================== -->
+    <resource methods="GET" uri-template="/summary">
+        <inSequence>
+
+            <log level="custom">
+                <property name="MachineHealthService"
+                          value="GET plant health summary"/>
+            </log>
+
+            <call>
+                <endpoint>
+                    <http method="get"
+                          uri-template="http://telemetry-store:9100/summary"/>
+                </endpoint>
+            </call>
+
+            <property name="messageType"
+                      value="application/json"
+                      scope="axis2"/>
+
+            <respond/>
+        </inSequence>
+
+        <outSequence/>
+        <faultSequence>
+            <log level="full"/>
+            <drop/>
+        </faultSequence>
+    </resource>
+
 </api>

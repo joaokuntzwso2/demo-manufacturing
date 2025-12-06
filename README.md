@@ -1,200 +1,193 @@
-# **OEM Visibility Demo – Manufacturing Operations Visibility Using WSO2 Micro Integrator + MQTT + Node.js Backends**
+# **OEM Visibility Demo – Unified Manufacturing Operations, Telemetry Intelligence & Agentic Insights**
 
-This repository delivers a **complete, runnable manufacturing visibility scenario**, showing how WSO2 Micro Integrator unifies:
+### *Powered by WSO2 Micro Integrator, MQTT, Node.js Services & AI Agent Layer*
 
-* **Operational Technology (OT)**: Machine telemetry via MQTT
-* **Information Technology (IT)**: ERP & MES systems
-* **Real-time machine health**: Normalization, ingestion & alerting
-* **Unified enterprise API** for OEM dashboards, supervisors, and analytics
+This repository delivers a **full-stack, production-grade manufacturing visibility solution** that demonstrates how modern OEMs can unify:
 
-The repo includes:
+* **Operational Technology (OT)** — shop-floor machine telemetry via MQTT
+* **Information Technology (IT)** — ERP & MES enterprise systems
+* **Real-time machine health analytics** — telemetry normalization, alerting & storage
+* **Enterprise-grade integration** — orchestration, mediation, resiliency, observability
+* **AI-driven insights** — an **Agentic Manufacturing Operations Assistant**
 
-✔ ERP & MES mock backends (Node.js)
-✔ Telemetry Store (Node.js) with alert logic
-✔ Mosquitto MQTT broker
-✔ WSO2 MI integration artifacts (APIs, sequences, inbound, endpoints)
-✔ Fully orchestrated Docker Compose environment
+All components run end-to-end through **Docker Compose** and emulate a mature Industry 4.0 architecture.
 
 ---
 
-# **1. Repository Structure (Your Actual Folder Layout)**
+# ⭐ **1. What This Demo Enables (Executive Summary)**
+
+This solution showcases how an OEM or industrial manufacturer can:
+
+### ✔ **Achieve real-time operations visibility**
+
+Consolidate ERP orders, MES production status, and machine telemetry into a unified MI-powered API.
+
+### ✔ **Detect anomalies and machine degradation early**
+
+Normalize telemetry and detect temperature/vibration threshold breaches.
+
+### ✔ **Enable OT/IT convergence**
+
+Bring siloed systems (ERP, MES, IoT telemetry) into a single integration backbone.
+
+### ✔ **Provide a digital thread across systems**
+
+Order → Production → Machine Health → Alerts.
+
+### ✔ **Empower supervisors and analysts with AI**
+
+A Ballerina-based **Agentic Operations Assistant** uses MI APIs to generate contextual explanations.
+
+### ✔ **Demonstrate a world-class integration backbone**
+
+Using WSO2 MI for:
+
+* Composite integrations
+* MQTT ingest flows
+* Transformation & normalization
+* Observability & correlation IDs
+* Robust mediation patterns
+
+---
+
+# 🏗 **2. System Architecture Overview**
 
 ```
-Manufacturing/
-├── README.md        ← this file
-├── backend/
-│   └── docker/
-│       ├── docker-compose.yml
-│       ├── erp-service/
-│       │   ├── Dockerfile
-│       │   └── server.js
-│       ├── mes-service/
-│       │   ├── Dockerfile
-│       │   └── server.js
-│       ├── telemetry-store/
-│       │   ├── Dockerfile
-│       │   └── server.js
-│       └── mqtt-broker/
-│           └── mosquitto.conf
-└── oem-visibility-demo/         ← WSO2 MI Integration Project
-    ├── deployment/
-    ├── src/main/wso2mi/artifacts/
+                              +------------------------+
+                              |      ERP Service       |
+Frontends / AI Agent →        |   http://localhost:9001|
+                              +------------------------+
+                                        |
+                                        |
+                              +------------------------+
+                              |      MES Service       |
+                              |   http://localhost:9002|
+                              +------------------------+
+                                        |
+                                        v
++---------------------------------------------------------------+
+|                  WSO2 MICRO INTEGRATOR (MI)                   |
+|                                                               |
+| Facade APIs:                                                  |
+|   • GET /internal/orders/orders/{id}                          |
+|         ↳ Composite call: ERP → MES → Merge JSON              |
+|                                                               |
+|   • POST /internal/machine-health/telemetry                   |
+|         ↳ Normalizes telemetry and forwards to TelemetryStore |
+|                                                               |
+|   • GET /internal/machine-health/telemetry/last-readings      |
+|   • GET /internal/machine-health/summary                      |
+|                                                               |
+| MQTT Inbound:                                                 |
+|   • Topic: oem/telemetry/{plant}/{machine}                    |
+|   • Runs TelemetryNormalizationSeq                            |
++---------------------------------------------------------------+
+                                        |
+                                        v
+                          +------------------------------+
+                          |     Telemetry Store Service  |
+                          |   http://localhost:9100      |
+                          |   • Saves last readings      |
+                          |   • Health classification     |
+                          |   • Emits simulated alerts    |
+                          +------------------------------+
+```
+
+---
+
+# 🧠 **3. Agentic Layer – Manufacturing Operations AI Assistant**
+
+The AI assistant is implemented in **Ballerina** and uses the **new tool-calling architecture**.
+
+### The agent can:
+
+* Retrieve **full order context** (ERP header + MES execution)
+* Retrieve **latest telemetry readings**
+* Retrieve **plant-level health summary**
+* Inject telemetry to simulate readings
+* Explain operational risks
+* Summarize machine degradation
+* Provide actionable insights
+
+### **AI Tools (Ballerina)**
+
+| Tool Name               | Purpose                                       |
+| ----------------------- | --------------------------------------------- |
+| **GetOrderContextTool** | Calls MI composite API → ERP+MES merged order |
+| **GetLastReadingsTool** | Calls MI last readings API                    |
+| **GetPlantSummaryTool** | Calls MI summary API                          |
+| **IngestTelemetryTool** | Posts telemetry to MI for normalization       |
+
+✔ Agent responds **in Brazilian Portuguese**
+✔ Uses the strict system prompt
+✔ Never bypasses MI; all data goes through integration layer
+✔ Does not hallucinate data
+✔ Uses structured envelopes for errors & results
+
+---
+
+# 📂 **4. Repository Structure**
+
+```
+backend/
+├── docker-compose.yml
+├── erp-service/
+├── mes-service/
+├── telemetry-store/
+├── mqtt-broker/
+└── mqtt-bridge/
+
+oem-visibility-demo/
+├── target/*.car
+└── src/main/
+    ├── wso2mi/
     │   ├── apis/
+    │   ├── sequences/
     │   ├── endpoints/
     │   ├── inbound-endpoints/
-    │   └── sequences/
-    └── target/oem-visibility-demo_1.0.0.car
-```
-
-Everything you need to run the demo is here.
-
----
-
-# **2. High-Level Architecture**
-
-```
-                                 +----------------------+
-                                 |   ERP Backend (Node) |
-                                 |   http://localhost:9001
-                                 +----------------------+
-
-                                 +----------------------+
-                                 |   MES Backend (Node) |
-Frontend (Postman, Curl)  --->   |   http://localhost:9002
-/internal/orders/{id}            +----------------------+
-
-+---------------------------------------------------------------+
-|                 WSO2 MICRO INTEGRATOR (MI)                    |
-|                                                               |
-| APIs:                                                         |
-|  • /internal/orders → merges ERP + MES                        |
-|  • /internal/machine-health → HTTP telemetry ingestion        |
-|                                                               |
-| MQTT Inbound Endpoint:                                        |
-|  • Topic: oem/telemetry/{plant}/{machine}                     |
-|  • Executes: TelemetryNormalizationSeq                        |
-|                                                               |
-| Normalized telemetry forwarded to:                            |
-|  → Telemetry Store (Node.js @ localhost:9100)                 |
-+---------------------------------------------------------------+
-
-                               ^
-                               |
-       POST /telemetry (JSON)  |
-                               |
-                     +------------------------+
-                     |   Telemetry Store      |
-                     |   Alerts + last values |
-                     |   http://localhost:9100|
-                     +------------------------+
-
-                               ^
-                               |
-                               |
-                    +-------------------------+
-                    |   MQTT Broker (Mosquitto)|
-                    |      port 1883           |
-                    +--------------------------+
+    │   └── synapse-config/
+    └── ballerina/
+        ├── agents.bal
+        ├── tools.bal
+        ├── config.bal
+        ├── types.bal
+        └── main.bal
 ```
 
 ---
 
-# **3. Running the Backend Environment**
+# 🚀 **5. Running the Demo**
 
-Navigate to:
+From:
 
 ```
 backend/docker/
 ```
 
-Start everything:
+Run:
 
 ```bash
 docker compose up --build
 ```
 
-This launches:
+### Available services:
 
-| Service         | Path                           | Port |
-| --------------- | ------------------------------ | ---- |
-| mqtt-broker     | backend/docker/mqtt-broker     | 1883 |
-| erp-service     | backend/docker/erp-service     | 9001 |
-| mes-service     | backend/docker/mes-service     | 9002 |
-| telemetry-store | backend/docker/telemetry-store | 9100 |
-
----
-
-# **4. Backend Implementations**
-
-## **4.1 ERP Service – `backend/docker/erp-service/server.js`**
+| Service         | Port | Description                           |
+| --------------- | ---- | ------------------------------------- |
+| MQTT Broker     | 1883 | Machine telemetry ingestion           |
+| ERP Service     | 9001 | Order header, customer, value         |
+| MES Service     | 9002 | Production progress                   |
+| Telemetry Store | 9100 | Machine health storage & alerts       |
+| WSO2 MI         | 8290 | Integration layer / composite APIs    |
+| AI Agent        | 8293 | Ballerina-based operational assistant |
 
 ---
 
-## **4.2 MES Service – `backend/docker/mes-service/server.js`**
+# 🧪 **6. Testing End-to-End**
 
 ---
 
-## **4.3 Telemetry Store – `backend/docker/telemetry-store/server.js`**
-
-✔ Stores last readings
-✔ Evaluates thresholds
-✔ Emits simulated alerts
-✔ Works with MI normalization flow
-
----
-
-# **5. Deploying and Running WSO2 Micro Integrator**
-
-## **5.1 Build the CAR**
-
-From:
-
-```
-oem-visibility-demo/
-```
-
-Run:
-
-```bash
-mvn clean install
-```
-
-The file appears at:
-
-```
-oem-visibility-demo/target/oem-visibility-demo_1.0.0.car
-```
-
-## **5.2 Deploy to MI**
-
-Copy the CAR:
-
-```bash
-cp oem-visibility-demo/target/oem-visibility-demo_1.0.0.car \
-  ~/Applications/wso2mi-4.5.0/repository/deployment/server/carbonapps/
-```
-
-Start MI:
-
-```bash
-~/Applications/wso2mi-4.5.0/bin/micro-integrator.sh
-```
-
-Expected logs:
-
-```
-Initializing API: MachineHealthService
-Initializing API: OrderStatusService
-Inbound endpoint deployed: TelemetryMQTTInbound
-```
-
----
-
-# **6. Testing the End-to-End Flow**
-
----
-
-## **6.1 Publish MQTT Telemetry**
+## **6.1 Publish MQTT telemetry**
 
 ```bash
 mosquitto_pub -h localhost -p 1883 \
@@ -202,123 +195,172 @@ mosquitto_pub -h localhost -p 1883 \
   -m '{"machine":"M-100","plant":"SP1","ts":"2025-12-04T10:05:00Z","temperature":81.3,"vibration":0.9}'
 ```
 
-### ✔ MI Log Output (important!)
+---
 
-Inside MI console you should see:
-
-```
-[TelemetryNormalizationSeq] TelemetryNormalizationSeq = Normalizing telemetry message
-```
-
-### ✔ Telemetry Store Output (Docker logs)
-
-In the `docker compose up` terminal:
-
-```
-=== ALERT EVENTS ===
-[
-  {
-    "type": "TEMP_THRESHOLD_BREACHED",
-    "temp": 81.3
-  }
-]
-====================
-```
-
-Inspect stored values:
+## **6.2 Retrieve last telemetry readings from MI**
 
 ```bash
-curl http://localhost:9100/last-readings
+curl -s http://localhost:8290/internal/machine-health/telemetry/last-readings | jq
 ```
 
 ---
 
-## **6.2 Test Unified Order API**
+## **6.3 Retrieve plant summary**
 
 ```bash
-curl http://localhost:8290/internal/orders/orders/123
-```
-
-Returns:
-
-```json
-{
-  "orderId": "123",
-  "erpRaw": {...},
-  "mesRaw": {...}
-}
+curl -s http://localhost:8290/internal/machine-health/summary | jq
 ```
 
 ---
 
-## **6.3 Test HTTP Telemetry Ingestion**
+## **6.4 Unified order view (ERP + MES)**
 
 ```bash
-curl -X POST http://localhost:8290/internal/machine-health/telemetry \
+curl -s http://localhost:8290/internal/orders/orders/12345 | jq
+```
+
+---
+
+## **6.5 HTTP telemetry ingestion via MI**
+
+```bash
+curl -s -X POST http://localhost:8290/internal/machine-health/telemetry \
   -H "Content-Type: application/json" \
-  -d '{"machine":"M-200","plant":"SP2","ts":"2025-12-04T11:00Z","temperature":72,"vibration":0.03}'
-```
-
-MI log:
-
-```
-MachineHealthService = HTTP telemetry ingestion
+  -d '{"machine":"M-200","plant":"SP1","ts":"2025-12-04T11:00Z","temperature":70,"vibration":0.14}' | jq
 ```
 
 ---
 
-# **7. WSO2 Integration Artifacts Overview**
-
-These are located in:
-
-```
-oem-visibility-demo/src/main/wso2mi/artifacts/
-```
-
-| File                              | Description                                |
-| --------------------------------- | ------------------------------------------ |
-| **OrderStatusService.xml**        | Calls ERP + MES, merges results            |
-| **MachineHealthService.xml**      | HTTP telemetry ingestion                   |
-| **TelemetryMQTTInbound.xml**      | MQTT listener                              |
-| **TelemetryNormalizationSeq.xml** | Normalizes telemetry and forwards to store |
-| **ERPServiceEP.xml**              | Backend endpoint                           |
-| **MESServiceEP.xml**              | Backend endpoint                           |
+# 🤖 **7. Testing the AI Agent**
 
 ---
 
-# **8. Storytelling – Why This Demo Matters**
+## **Agent health**
 
-This demo illustrates:
-
-### ✔ **OT/IT Convergence**
-
-Bringing machine telemetry (MQTT) into enterprise decision flows.
-
-### ✔ **Unified operations visibility**
-
-ERP + MES + Machine telemetry → one API.
-
-### ✔ **Event-driven operations**
-
-Telemetry triggers alerts in real time.
-
-### ✔ **Low-code Enterprise Integration**
-
-MI Designer shows all mediation visually.
-
-### ✔ **Digital Thread Foundation**
-
-Orders, equipment, and health data linked across systems.
+```bash
+curl -s http://localhost:8293/v1/health | jq
+```
 
 ---
 
-# **9. Summary**
+## **Ask about order 12345**
 
-You now have a **production-grade demonstration** of:
+```bash
+curl -s -X POST http://localhost:8293/v1/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "sessionId": "sess1",
+    "message": "Qual é o status da ordem 12345?"
+  }' | jq
+```
 
-* MQTT → WSO2 MI → Normalization → Telemetry Store
-* ERP+MES unified APIs
-* Full Dockerized backend
-* Real-time alerting and observability
+---
 
-Perfect for demos, PoCs, stakeholder presentations, and OT/IT modernization scenarios.
+## **Ask about plant health**
+
+```bash
+curl -s -X POST http://localhost:8293/v1/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "sessionId": "sess2",
+    "message": "Resumo da saúde das máquinas da planta SP1."
+  }' | jq
+```
+
+---
+
+## **Ask the agent to inject telemetry**
+
+```bash
+curl -s -X POST http://localhost:8293/v1/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "sessionId": "sess3",
+    "message": "Injete telemetria na máquina M-300 com temperatura 92."
+  }' | jq
+```
+
+---
+
+# 🛠 **8. WSO2 Integration Components**
+
+### **APIs**
+
+| Name                    | Purpose                                    |
+| ----------------------- | ------------------------------------------ |
+| `OrderCompositeAPI.xml` | Calls ERP + MES → merges JSON              |
+| `MachineHealthAPI.xml`  | Telemetry ingest + last-readings + summary |
+
+### **MQTT Inbound**
+
+* `TelemetryMQTTInbound.xml`
+
+### **Sequences**
+
+* `TelemetryNormalizationSeq.xml`
+* `ForwardToTelemetryStoreSeq.xml`
+
+### **Endpoints**
+
+* `ERPServiceEP.xml`
+* `MESServiceEP.xml`
+* `TelemetryStoreEP.xml`
+
+### **Agent Layer (Ballerina)**
+
+* Tools call MI only
+* Correlation IDs end-to-end
+* Standard envelopes for success/error
+* Retry-aware, robust, deterministic behavior
+
+---
+
+# 🏭 **9. Why This Matters for OEMs & Industrial Enterprises**
+
+### 🔧 OT/IT Convergence
+
+Factory → MES → ERP → MI → BI in one pipeline.
+
+### 📊 True Operational Visibility
+
+Order progress + machine state + alerts in one digital thread.
+
+### ⚠️ Predictive Maintenance Foundation
+
+Temperature/vibration detection → alerts → BI agent → human action.
+
+### 🤝 Digital Thread Enablement
+
+Order → Routing → Telemetry → Execution → Insights.
+
+### 🧠 AI-Assisted Operations
+
+Natural-language insights for:
+
+* production supervisors
+* maintenance engineers
+* quality leaders
+
+### 🧩 Composable Integration Architecture
+
+Extendable into:
+
+* SCADA
+* CMMS
+* Historian
+* SAP/Oracle ERPs
+* Kafka pipelines
+
+---
+
+# ✅ **10. Summary**
+
+This repository demonstrates a **modern Industry 4.0 integration architecture**, including:
+
+* MQTT machine telemetry
+* Normalization, routing & alerting
+* Unified ERP + MES view via composite integration
+* Robust API-led orchestration
+* Real-time analytics via telemetry-store
+* AI-powered operational insights
+* Fully Dockerized demo stack

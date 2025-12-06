@@ -1,0 +1,12 @@
+{
+  "name": "mqtt-bridge",
+  "version": "1.0.0",
+  "description": "MQTT to HTTP bridge for OEM visibility demo",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "mqtt": "^5.7.0"
+  }
+}

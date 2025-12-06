@@ -1,8 +1,11 @@
-FROM node:20-alpine
+# Simple Node.js image for the ERP mock backend
+FROM node:18-alpine
 
-WORKDIR /usr/src/app
+WORKDIR /app
+
+# Copy only what we need (no npm deps for this simple HTTP server)
 COPY server.js .
 
 EXPOSE 9001
-CMD ["node", "server.js"]
 
+CMD ["node", "server.js"]

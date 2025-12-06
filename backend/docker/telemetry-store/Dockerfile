@@ -1,8 +1,10 @@
-FROM node:20-alpine
+# Telemetry store backend (Node.js HTTP service)
+FROM node:18-alpine
 
-WORKDIR /usr/src/app
+WORKDIR /app
+
 COPY server.js .
 
 EXPOSE 9100
-CMD ["node", "server.js"]
 
+CMD ["node", "server.js"]

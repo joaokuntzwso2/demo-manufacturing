@@ -12,16 +12,17 @@
         <!-- This factory must be defined in deployment.toml -->
         <parameter name="mqtt.connection.factory">mqttConFactory</parameter>
 
-        <!-- Broker connection (Docker Mosquitto on localhost:1883) -->
-        <parameter name="mqtt.server.host.name">localhost</parameter>
+        <!-- Broker connection (Docker Mosquitto on mqtt-broker:1883) -->
+        <parameter name="mqtt.server.host.name">mqtt-broker</parameter>
         <parameter name="mqtt.server.port">1883</parameter>
 
-        <!-- Telemetry topic pattern -->
+        <!-- Telemetry topic pattern (two-level plant/machine) -->
         <parameter name="mqtt.topic.name">oem/telemetry/+/+</parameter>
 
         <!-- Inbound messages are JSON -->
         <parameter name="content.type">application/json</parameter>
 
+        <!-- Same values as your original reference project -->
         <parameter name="mqtt.subscription.qos">0</parameter>
         <parameter name="mqtt.session.clean">false</parameter>
         <parameter name="mqtt.ssl.enable">false</parameter>

@@ -1,8 +1,10 @@
-FROM node:20-alpine
+# Simple Node.js image for the MES mock backend
+FROM node:18-alpine
 
-WORKDIR /usr/src/app
+WORKDIR /app
+
 COPY server.js .
 
 EXPOSE 9002
-CMD ["node", "server.js"]
 
+CMD ["node", "server.js"]

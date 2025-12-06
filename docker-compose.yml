@@ -1,0 +1,100 @@
+version: "3.9"
+
+services:
+  # --------------------------------------------------------------------------
+  # MQTT broker (Mosquitto) - OT side
+  # --------------------------------------------------------------------------
+  mqtt-broker:
+    image: eclipse-mosquitto:2
+    container_name: mqtt-broker
+    ports:
+      # Host 1884 -> Container 1883 to avoid conflict with local mosquitto
+      - "1884:1883"
+    volumes:
+      # Use your existing mosquitto.conf
+      - ./backend/docker/mqtt-broker/mosquitto.conf:/mosquitto/config/mosquitto.conf
+
+  # --------------------------------------------------------------------------
+  # MQTT → HTTP bridge (Node.js) - forwards MQTT telemetry to MI HTTP API
+  # --------------------------------------------------------------------------
+  mqtt-bridge:
+    build: ./backend/docker/mqtt-bridge
+    container_name: mqtt-bridge
+    depends_on:
+      - mqtt-broker
+      - mi
+    environment:
+      - MQTT_URL=mqtt://mqtt-broker:1883
+      - MQTT_TOPIC=oem/telemetry/+/+
+      - MI_BASE_URL=http://mi:8290
+      - TELEMETRY_PATH=/internal/machine-health/telemetry
+
+  # --------------------------------------------------------------------------
+  # ERP mock backend (Node.js)
+  # --------------------------------------------------------------------------
+  erp-service:
+    build: ./backend/docker/erp-service
+    container_name: erp-service
+    ports:
+      - "9001:9001"
+
+  # --------------------------------------------------------------------------
+  # MES mock backend (Node.js)
+  # --------------------------------------------------------------------------
+  mes-service:
+    build: ./backend/docker/mes-service
+    container_name: mes-service
+    ports:
+      - "9002:9002"
+
+  # --------------------------------------------------------------------------
+  # Telemetry Store backend (Node.js)
+  # --------------------------------------------------------------------------
+  telemetry-store:
+    build: ./backend/docker/telemetry-store
+    container_name: telemetry-store
+    ports:
+      - "9100:9100"
+
+  # --------------------------------------------------------------------------
+  # WSO2 Micro Integrator - OEM Visibility flows
+  # --------------------------------------------------------------------------
+  mi:
+    image: wso2/wso2mi:4.5.0
+    container_name: mi
+    ports:
+      - "8290:8290"
+    environment:
+      - JAVA_OPTS=-Xms256m -Xmx512m
+    volumes:
+      # Deploy the integration CAR
+      - ./oem-visibility-demo/target/oem-visibility-demo_1.0.0.car:/home/wso2carbon/wso2mi-4.5.0/repository/deployment/server/carbonapps/oem-visibility-demo_1.0.0.car
+
+      # Add MQTT client JAR to MI classpath (used by other artifacts if needed)
+      - ./oem-visibility-demo/deployment/libs/mqtt-client-0.4.0.jar:/home/wso2carbon/wso2mi-4.5.0/lib/mqtt-client-0.4.0.jar
+    depends_on:
+      - erp-service
+      - mes-service
+      - telemetry-store
+      - mqtt-broker
+
+  # --------------------------------------------------------------------------
+  # OEM Visibility Agent (Ballerina) - BI / AI layer
+  # --------------------------------------------------------------------------
+  oem-visibility-agent:
+    build:
+      context: ./oem_visibility_agent
+      dockerfile: DockerFile
+    container_name: oem-visibility-agent
+    ports:
+      - "8293:8293"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_MODEL=GPT_4O
+      - BACKEND_BASE_URL=http://mi:8290
+      - HTTP_LISTENER_PORT=8293
+
+      # Limit JVM heap for Ballerina (tune as needed)
+      - BALJAVA_OPTS=-Xms256m -Xmx512m
+    depends_on:
+      - mi

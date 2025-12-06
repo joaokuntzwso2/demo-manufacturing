@@ -40,11 +40,12 @@
               value="application/json"
               scope="axis2"/>
 
-    <!-- Forward normalized telemetry to HTTP telemetry store -->
+    <!-- Forward normalized telemetry to HTTP telemetry store
+         IMPORTANT: use Docker service name "telemetry-store" -->
     <send>
         <endpoint>
             <http method="post"
-                  uri-template="http://localhost:9100/telemetry">
+                  uri-template="http://telemetry-store:9100/telemetry">
                 <suspendOnFailure>
                     <initialDuration>-1</initialDuration>
                     <progressionFactor>-1</progressionFactor>
