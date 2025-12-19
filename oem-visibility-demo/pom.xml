@@ -1,17 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd"
-         xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <modelVersion>4.0.0</modelVersion>
-
     <groupId>com.microintegrator.projects</groupId>
     <artifactId>oem-visibility-demo</artifactId>
     <version>1.0.0</version>
     <packaging>pom</packaging>
-
     <name>oem-visibility-demo</name>
     <description>oem-visibility-demo</description>
-
     <!-- WSO2 + snapshot repos -->
     <repositories>
         <repository>
@@ -47,7 +42,6 @@
             </releases>
         </repository>
     </repositories>
-
     <pluginRepositories>
         <pluginRepository>
             <id>wso2.snapshots</id>
@@ -71,7 +65,6 @@
             <url>https://maven.wso2.org/nexus/content/groups/wso2-public/</url>
         </pluginRepository>
     </pluginRepositories>
-
     <profiles>
         <!-- Default local build profile -->
         <profile>
@@ -102,7 +95,6 @@
                             </execution>
                         </executions>
                     </plugin>
-
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-compiler-plugin</artifactId>
@@ -111,7 +103,6 @@
                             <target>1.8</target>
                         </configuration>
                     </plugin>
-
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-jar-plugin</artifactId>
@@ -128,7 +119,6 @@
                             </execution>
                         </executions>
                     </plugin>
-
                     <!-- Build the Carbon Application (CApp) -->
                     <plugin>
                         <groupId>org.wso2.maven</groupId>
@@ -141,11 +131,10 @@
                                 <goals>
                                     <goal>car</goal>
                                 </goals>
-                                <configuration/>
+                                <configuration></configuration>
                             </execution>
                         </executions>
                     </plugin>
-
                     <!-- Install .car into local Maven repo -->
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
@@ -181,11 +170,10 @@
                 <server.download.link>${test.server.download.link}</server.download.link>
             </properties>
         </profile>
-
         <!-- Test profile (for synapse-unit-test plugin) -->
         <profile>
             <id>test</id>
-            <build/>
+            <build></build>
             <properties>
                 <server.type>${testServerType}</server.type>
                 <server.host>${testServerHost}</server.host>
@@ -193,7 +181,6 @@
                 <server.path>${testServerPath}</server.path>
             </properties>
         </profile>
-
         <!-- Docker build profile -->
         <profile>
             <id>docker</id>
@@ -217,7 +204,6 @@
                             <target>1.8</target>
                         </configuration>
                     </plugin>
-
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-jar-plugin</artifactId>
@@ -234,7 +220,6 @@
                             </execution>
                         </executions>
                     </plugin>
-
                     <!-- Build the Carbon Application for Docker -->
                     <plugin>
                         <groupId>org.wso2.maven</groupId>
@@ -247,11 +232,10 @@
                                 <goals>
                                     <goal>car</goal>
                                 </goals>
-                                <configuration/>
+                                <configuration></configuration>
                             </execution>
                         </executions>
                     </plugin>
-
                     <!-- Download dependency jars (e.g. mqtt-client) to deployment/libs for Docker image -->
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
@@ -273,7 +257,6 @@
                             </execution>
                         </executions>
                     </plugin>
-
                     <!-- Run config mapper to transform deployment.toml & configs for Docker -->
                     <plugin>
                         <groupId>org.wso2.maven</groupId>
@@ -298,9 +281,8 @@
                                 </configuration>
                             </execution>
                         </executions>
-                        <configuration/>
+                        <configuration></configuration>
                     </plugin>
-
                     <!-- Copy .car into Docker build context -->
                     <plugin>
                         <artifactId>maven-antrun-plugin</artifactId>
@@ -317,16 +299,15 @@
                                     <target>
                                         <copy todir="${basedir}/target/tmp_docker/CompositeApps">
                                             <fileset dir="${basedir}/target">
-                                                <include name="*.car"/>
+                                                <include name="*.car"></include>
                                             </fileset>
                                         </copy>
                                     </target>
                                 </configuration>
                             </execution>
                         </executions>
-                        <configuration/>
+                        <configuration></configuration>
                     </plugin>
-
                     <!-- Build Docker image with MI + your CApp + libs -->
                     <plugin>
                         <groupId>io.fabric8</groupId>
@@ -362,7 +343,7 @@
                                 </configuration>
                             </execution>
                         </executions>
-                        <configuration/>
+                        <configuration></configuration>
                     </plugin>
                 </plugins>
             </build>
@@ -376,7 +357,6 @@
             </properties>
         </profile>
     </profiles>
-
     <build>
         <plugins>
             <!-- Synapse unit test plugin -->
@@ -408,42 +388,33 @@
             </plugin>
         </plugins>
     </build>
-
     <properties>
         <versionedDeployment>false</versionedDeployment>
         <projectType>integration-project</projectType>
         <uuid>110b2b47-bd71-48da-9d6a-794147d8293e</uuid>
         <!-- <archiveLocation>configure a custom target directory for CAPP</archiveLocation> -->
-
         <!-- Keystore defaults -->
         <keystore.type>JKS</keystore.type>
         <keystore.name>wso2carbon.jks</keystore.name>
         <keystore.password>wso2carbon</keystore.password>
         <keystore.alias>wso2carbon</keystore.alias>
-
         <fat.car.enable>false</fat.car.enable>
         <ciphertool.enable>true</ciphertool.enable>
-
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
-
         <project.scm.id>integration-project</project.scm.id>
         <project.runtime.version>4.5.0</project.runtime.version>
         <dockerfile.base.image>wso2/wso2mi:${project.runtime.version}</dockerfile.base.image>
-
-        <car.plugin.version>5.4.12</car.plugin.version>
-
+        <car.plugin.version>5.4.13</car.plugin.version>
         <!-- Test server defaults (for synapse-unit-test) -->
         <test.server.type>local</test.server.type>
         <test.server.host>localhost</test.server.host>
         <test.server.port>9008</test.server.port>
         <test.server.path>/</test.server.path>
         <test.server.version>${project.runtime.version}</test.server.version>
-
         <test.server.download.link></test.server.download.link>
         <maven.test.skip>false</maven.test.skip>
     </properties>
-
     <dependencies>
         <!-- MQTT client used by MQTT inbound endpoint (Paho) -->
         <dependency>
@@ -451,7 +422,6 @@
             <artifactId>mqtt-client</artifactId>
             <version>0.4.0</version>
         </dependency>
-
         <!-- HTTP connector (used via mi-connector-http) -->
         <dependency>
             <groupId>org.wso2.integration.connector</groupId>

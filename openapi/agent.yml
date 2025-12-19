@@ -1,0 +1,240 @@
+openapi: 3.0.3
+info:
+  title: OEM Operations Visibility Agent API
+  version: 1.0.0
+  description: |
+    Ballerina HTTP service exposing the OEM Operations Visibility agent.
+
+    Notes:
+    - Base path: /v1
+    - POST /v1/chat accepts an AgentRequest and returns AgentResponse on success.
+    - Correlation ID:
+      - Client may send X-Correlation-Id header.
+      - Service echoes it back; if absent/blank, service generates one and returns it.
+    - Errors return an ErrorBody with HTTP 400 or 500.
+
+servers:
+  - url: /
+    description: Relative base (set to your gateway host)
+  - url: http://localhost:{port}
+    description: Local/dev
+    variables:
+      port:
+        default: "8080"
+
+tags:
+  - name: Agent
+    description: Chat/agent execution
+  - name: Health
+    description: Liveness/readiness endpoints
+
+paths:
+  /v1/chat:
+    post:
+      tags: [Agent]
+      operationId: postChat
+      summary: Run OEM Operations Visibility agent
+      description: |
+        Executes the OEM agent with the provided sessionId and message.
+        Returns the agent output message along with metadata.
+
+        Validation:
+        - sessionId must not be empty -> 400
+        - message must not be empty -> 400
+
+        Retry:
+        - Transient LLM errors may be retried once internally.
+      parameters:
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Optional correlation ID for tracing. Echoed back in responses.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AgentRequest"
+            examples:
+              sample:
+                value:
+                  sessionId: "sess-abc-123"
+                  message: "Show me the current status of order 1001 and any machine health risks."
+      responses:
+        "200":
+          description: Agent executed successfully
+          headers:
+            X-Correlation-Id:
+              description: Correlation ID (echoed or generated)
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentResponse"
+              examples:
+                sample:
+                  value:
+                    sessionId: "sess-abc-123"
+                    agentName: "OEM-Operations-Visibility-Agent"
+                    promptVersion: "v1"
+                    message: "Order 1001 is RELEASED in ERP; MES shows 72% complete at PAINT. No critical machine alerts detected."
+        "400":
+          description: Invalid request (empty sessionId or message)
+          headers:
+            X-Correlation-Id:
+              description: Correlation ID (echoed or generated)
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorBody"
+              examples:
+                emptySession:
+                  value:
+                    message: "Invalid request"
+                    details: "sessionId must not be empty"
+                emptyMessage:
+                  value:
+                    message: "Agent execution failed."
+                    details: "Try again later or contact support."
+        "500":
+          description: Agent execution failed (LLM/internal error)
+          headers:
+            X-Correlation-Id:
+              description: Correlation ID (echoed or generated)
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorBody"
+              examples:
+                error:
+                  value:
+                    message: "Agent execution failed"
+                    details: "Upstream error or model failure message"
+
+  /v1/health:
+    get:
+      tags: [Health]
+      operationId: getHealth
+      summary: Liveness check
+      responses:
+        "200":
+          description: Service is up
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+              examples:
+                up:
+                  value:
+                    status: "UP"
+                    component: "OEM-Operations-Visibility-Agent"
+
+  /v1/health/ready:
+    get:
+      tags: [Health]
+      operationId: getReady
+      summary: Readiness check
+      description: Includes dependency hints.
+      responses:
+        "200":
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadyResponse"
+              examples:
+                up:
+                  value:
+                    status: "UP"
+                    component: "OEM-Operations-Visibility-Agent"
+                    dependencies:
+                      - "OpenAI"
+                      - "MI/APIM-Backend"
+
+components:
+  schemas:
+    AgentRequest:
+      type: object
+      additionalProperties: false
+      required: [sessionId, message]
+      properties:
+        sessionId:
+          type: string
+          description: Client-managed conversation/session identifier
+          minLength: 1
+          example: "sess-abc-123"
+        message:
+          type: string
+          description: User message to the agent
+          minLength: 1
+          example: "What is the status of order 1001?"
+
+    AgentResponse:
+      type: object
+      additionalProperties: false
+      required: [sessionId, agentName, promptVersion, message]
+      properties:
+        sessionId:
+          type: string
+          example: "sess-abc-123"
+        agentName:
+          type: string
+          description: Agent identifier/name
+          example: "OEM-Operations-Visibility-Agent"
+        promptVersion:
+          type: string
+          description: Prompt version used by the agent
+          example: "v1"
+        message:
+          type: string
+          description: Agent output message
+          example: "..."
+
+    ErrorBody:
+      type: object
+      additionalProperties: false
+      required: [message, details]
+      properties:
+        message:
+          type: string
+          example: "Agent execution failed"
+        details:
+          type: string
+          example: "Detailed error message"
+
+    HealthResponse:
+      type: object
+      additionalProperties: false
+      required: [status, component]
+      properties:
+        status:
+          type: string
+          example: "UP"
+        component:
+          type: string
+          example: "OEM-Operations-Visibility-Agent"
+
+    ReadyResponse:
+      type: object
+      additionalProperties: false
+      required: [status, component, dependencies]
+      properties:
+        status:
+          type: string
+          example: "UP"
+        component:
+          type: string
+          example: "OEM-Operations-Visibility-Agent"
+        dependencies:
+          type: array
+          items:
+            type: string
+          example: ["OpenAI", "MI/APIM-Backend"]
+

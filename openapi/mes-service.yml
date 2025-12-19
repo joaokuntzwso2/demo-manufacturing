@@ -1,0 +1,228 @@
+openapi: 3.0.3
+info:
+  title: MES Mock Backend API
+  version: 1.0.0
+  description: |
+    Mock MES backend service for manufacturing demo.
+    Exposes:
+      - GET /mes/orders/{id}
+      - GET /health
+servers:
+  - url: http://localhost:9002
+    description: Local/dev
+  - url: http://mes-service:9002
+    description: In-cluster (docker/k8s)
+
+tags:
+  - name: Orders
+    description: MES order execution/progress endpoints
+  - name: Health
+    description: Service health checks
+
+paths:
+  /mes/orders/{id}:
+    get:
+      tags: [Orders]
+      operationId: getMesOrderById
+      summary: Get MES order execution status by ID
+      description: |
+        Returns a demo-friendly MES execution payload for the given orderId.
+        (This mock returns 200 with a generated payload for any id segment.)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Order identifier
+          schema:
+            type: string
+          examples:
+            sample:
+              value: "1001"
+      responses:
+        "200":
+          description: MES order execution payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MesOrder"
+              examples:
+                sample:
+                  value:
+                    orderId: "1001"
+                    currentStation: "PAINT"
+                    completionPercent: 72
+                    line: "LINE-1"
+                    plant: "SP1"
+                    shift: "A"
+                    plannedStart: "2025-12-01T08:00:00Z"
+                    plannedEnd: "2025-12-01T16:00:00Z"
+                    actualStart: "2025-12-01T08:12:00Z"
+                    lastUpdated: "2025-12-19T13:45:10Z"
+                    oee: 0.87
+                    qualityRate: 0.98
+                    availabilityRate: 0.92
+                    performanceRate: 0.97
+                    bottleneckFlag: false
+                    scrapCount: 0
+                    reworkCount: 0
+                    sourceSystem: "MES"
+        "404":
+          description: Not found (unknown path)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /health:
+    get:
+      tags: [Health]
+      operationId: getMesHealth
+      summary: Health check
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+              examples:
+                up:
+                  value:
+                    status: "UP"
+                    service: "mes-service"
+
+components:
+  schemas:
+    MesOrder:
+      type: object
+      additionalProperties: false
+      required:
+        - orderId
+        - currentStation
+        - completionPercent
+        - line
+        - plant
+        - shift
+        - plannedStart
+        - plannedEnd
+        - actualStart
+        - lastUpdated
+        - oee
+        - qualityRate
+        - availabilityRate
+        - performanceRate
+        - bottleneckFlag
+        - scrapCount
+        - reworkCount
+        - sourceSystem
+      properties:
+        orderId:
+          type: string
+          example: "1001"
+        currentStation:
+          type: string
+          example: "PAINT"
+        completionPercent:
+          type: integer
+          minimum: 0
+          maximum: 100
+          example: 72
+        line:
+          type: string
+          example: "LINE-1"
+        plant:
+          type: string
+          example: "SP1"
+        shift:
+          type: string
+          description: Production shift identifier
+          example: "A"
+        plannedStart:
+          type: string
+          format: date-time
+          example: "2025-12-01T08:00:00Z"
+        plannedEnd:
+          type: string
+          format: date-time
+          example: "2025-12-01T16:00:00Z"
+        actualStart:
+          type: string
+          format: date-time
+          example: "2025-12-01T08:12:00Z"
+        lastUpdated:
+          type: string
+          format: date-time
+          example: "2025-12-19T13:45:10Z"
+        oee:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1
+          example: 0.87
+        qualityRate:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1
+          example: 0.98
+        availabilityRate:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1
+          example: 0.92
+        performanceRate:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1
+          example: 0.97
+        bottleneckFlag:
+          type: boolean
+          example: false
+        scrapCount:
+          type: integer
+          minimum: 0
+          example: 0
+        reworkCount:
+          type: integer
+          minimum: 0
+          example: 0
+        sourceSystem:
+          type: string
+          example: "MES"
+
+    HealthResponse:
+      type: object
+      additionalProperties: false
+      required: [status, service]
+      properties:
+        status:
+          type: string
+          example: "UP"
+        service:
+          type: string
+          example: "mes-service"
+
+    Error:
+      type: object
+      additionalProperties: true
+      properties:
+        error:
+          type: string
+          example: "Not found"
+        message:
+          type: string
+          example: "Unexpected error"
+        code:
+          type: string
+          example: "ERROR"
+        details:
+          type: object
+          additionalProperties: true

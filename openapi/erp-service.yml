@@ -1,0 +1,287 @@
+openapi: 3.0.3
+info:
+  title: ERP Mock Backend API
+  version: 1.0.0
+  description: |
+    Mock ERP backend service for manufacturing demo.
+    Exposes:
+      - GET /erp/orders/{id}
+      - GET /erp/orders
+      - GET /health
+servers:
+  - url: http://localhost:9001
+    description: Local/dev
+  - url: http://erp-service:9001
+    description: In-cluster (docker/k8s)
+
+tags:
+  - name: Orders
+    description: ERP order header endpoints
+  - name: Health
+    description: Service health checks
+
+paths:
+  /erp/orders/{id}:
+    get:
+      tags: [Orders]
+      operationId: getErpOrderById
+      summary: Get ERP order header by ID
+      description: |
+        Returns a detailed ERP order header. If the ID is not present in the in-memory dataset,
+        the service generates a synthetic but realistic order payload and still returns 200.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ERP order identifier
+          schema:
+            type: string
+          examples:
+            known:
+              value: "1001"
+            synthetic:
+              value: "9999"
+      responses:
+        "200":
+          description: Order header payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErpOrder"
+              examples:
+                sample:
+                  value:
+                    orderId: "1001"
+                    customer: "ACME Corp"
+                    customerCode: "ACME_BR"
+                    customerSegment: "AUTOMOTIVE_OEM"
+                    status: "RELEASED"
+                    priority: "HIGH"
+                    orderDate: "2025-01-10"
+                    requestedDeliveryDate: "2025-01-20"
+                    plant: "SP1"
+                    incoterm: "FOB"
+                    currency: "USD"
+                    total: 24500
+                    productionType: "MAKE_TO_ORDER"
+                    materialCode: "CHASSIS-ASSY-01"
+                    materialDescription: "Chassis Assembly - Sedan Platform"
+                    quantity: 50
+                    uom: "PCS"
+                    sourceSystem: "ERP"
+        "404":
+          description: Not found (this route returns 200 for any id; 404 is for unknown paths)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /erp/orders:
+    get:
+      tags: [Orders]
+      operationId: listErpOrders
+      summary: List sample/recent ERP orders (demo)
+      description: Returns the in-memory dataset of demo orders.
+      responses:
+        "200":
+          description: List of demo orders
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErpOrderListResponse"
+              examples:
+                sample:
+                  value:
+                    count: 2
+                    orders:
+                      - orderId: "1001"
+                        customer: "ACME Corp"
+                        customerCode: "ACME_BR"
+                        customerSegment: "AUTOMOTIVE_OEM"
+                        status: "RELEASED"
+                        priority: "HIGH"
+                        orderDate: "2025-01-10"
+                        requestedDeliveryDate: "2025-01-20"
+                        plant: "SP1"
+                        incoterm: "FOB"
+                        currency: "USD"
+                        total: 24500
+                        productionType: "MAKE_TO_ORDER"
+                        materialCode: "CHASSIS-ASSY-01"
+                        materialDescription: "Chassis Assembly - Sedan Platform"
+                        quantity: 50
+                        uom: "PCS"
+                        sourceSystem: "ERP"
+                      - orderId: "1002"
+                        customer: "Global Motors"
+                        customerCode: "GMOT_US"
+                        customerSegment: "AUTOMOTIVE_OEM"
+                        status: "CONFIRMED"
+                        priority: "MEDIUM"
+                        orderDate: "2025-01-11"
+                        requestedDeliveryDate: "2025-01-28"
+                        plant: "SP1"
+                        incoterm: "CIF"
+                        currency: "USD"
+                        total: 7800
+                        productionType: "MAKE_TO_STOCK"
+                        materialCode: "BUMPER-PLASTIC-01"
+                        materialDescription: "Front Bumper - Black"
+                        quantity: 200
+                        uom: "PCS"
+                        sourceSystem: "ERP"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /health:
+    get:
+      tags: [Health]
+      operationId: getErpHealth
+      summary: Health check
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+              examples:
+                up:
+                  value:
+                    status: "UP"
+                    service: "erp-service"
+
+components:
+  schemas:
+    ErpOrder:
+      type: object
+      additionalProperties: false
+      required:
+        - orderId
+        - customer
+        - customerCode
+        - customerSegment
+        - status
+        - priority
+        - orderDate
+        - requestedDeliveryDate
+        - plant
+        - incoterm
+        - currency
+        - total
+        - productionType
+        - materialCode
+        - materialDescription
+        - quantity
+        - uom
+        - sourceSystem
+      properties:
+        orderId:
+          type: string
+          example: "1001"
+        customer:
+          type: string
+          example: "ACME Corp"
+        customerCode:
+          type: string
+          example: "ACME_BR"
+        customerSegment:
+          type: string
+          example: "AUTOMOTIVE_OEM"
+        status:
+          type: string
+          example: "RELEASED"
+        priority:
+          type: string
+          example: "HIGH"
+        orderDate:
+          type: string
+          format: date
+          example: "2025-01-10"
+        requestedDeliveryDate:
+          type: string
+          format: date
+          example: "2025-01-20"
+        plant:
+          type: string
+          example: "SP1"
+        incoterm:
+          type: string
+          example: "FOB"
+        currency:
+          type: string
+          example: "USD"
+        total:
+          type: number
+          format: double
+          example: 24500.0
+        productionType:
+          type: string
+          example: "MAKE_TO_ORDER"
+        materialCode:
+          type: string
+          example: "CHASSIS-ASSY-01"
+        materialDescription:
+          type: string
+          example: "Chassis Assembly - Sedan Platform"
+        quantity:
+          type: integer
+          example: 50
+        uom:
+          type: string
+          example: "PCS"
+        sourceSystem:
+          type: string
+          example: "ERP"
+
+    ErpOrderListResponse:
+      type: object
+      additionalProperties: false
+      required: [count, orders]
+      properties:
+        count:
+          type: integer
+          example: 2
+        orders:
+          type: array
+          items:
+            $ref: "#/components/schemas/ErpOrder"
+
+    HealthResponse:
+      type: object
+      additionalProperties: false
+      required: [status, service]
+      properties:
+        status:
+          type: string
+          example: "UP"
+        service:
+          type: string
+          example: "erp-service"
+
+    Error:
+      type: object
+      additionalProperties: true
+      properties:
+        error:
+          type: string
+          example: "Not found"
+        message:
+          type: string
+          example: "Unexpected error"
+        code:
+          type: string
+          example: "ERROR"
+        details:
+          type: object
+          additionalProperties: true

@@ -1,0 +1,357 @@
+openapi: 3.0.3
+info:
+  title: Telemetry Store Mock Backend API
+  version: 1.0.0
+  description: |
+    Mock telemetry store backend for manufacturing KPIs.
+    Responsibilities:
+      - Persist last telemetry reading per machine
+      - Compute plant-level health summaries
+      - Trigger simulated alert events on threshold breaches
+
+servers:
+  - url: http://localhost:9100
+    description: Local/dev
+  - url: http://telemetry-store:9100
+    description: In-cluster (docker/k8s)
+
+tags:
+  - name: Telemetry
+    description: Telemetry ingestion and storage
+  - name: Summary
+    description: Aggregated views over telemetry
+  - name: Health
+    description: Service health checks
+
+paths:
+  /telemetry:
+    post:
+      tags: [Telemetry]
+      operationId: storeTelemetry
+      summary: Store normalized telemetry
+      description: |
+        Accepts normalized telemetry payloads from MI.
+        Stores the last reading per machine, updates plant-level summary,
+        and triggers simulated alert events when thresholds are breached.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TelemetryCanonical"
+            examples:
+              normal:
+                value:
+                  machineId: "M-1001"
+                  plantId: "SP1"
+                  timestamp: "2025-12-19T13:45:10Z"
+                  temp: 72.5
+                  vibration: 0.013
+              critical:
+                value:
+                  machineId: "M-2002"
+                  plantId: "SP1"
+                  timestamp: "2025-12-19T13:46:00Z"
+                  temp: 85.2
+                  vibration: 0.91
+      responses:
+        "200":
+          description: Telemetry stored successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TelemetryStoreResponse"
+              examples:
+                stored:
+                  value:
+                    status: "stored"
+                    machineId: "M-1001"
+                    plantId: "SP1"
+                    healthState: "NORMAL"
+                    alertsTriggered: 0
+                    events: []
+        "400":
+          description: Invalid or missing telemetry fields
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /last-readings:
+    get:
+      tags: [Summary]
+      operationId: getLastReadings
+      summary: Get last telemetry readings for all machines
+      description: |
+        Returns the last stored telemetry reading per machine.
+      responses:
+        "200":
+          description: Last readings map
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LastReadingsResponse"
+              examples:
+                sample:
+                  value:
+                    count: 2
+                    readings:
+                      M-1001:
+                        machineId: "M-1001"
+                        plantId: "SP1"
+                        timestamp: "2025-12-19T13:45:10Z"
+                        temp: 72.5
+                        vibration: 0.013
+                        healthState: "NORMAL"
+                        receivedAt: "2025-12-19T13:45:12Z"
+                      M-2002:
+                        machineId: "M-2002"
+                        plantId: "SP1"
+                        timestamp: "2025-12-19T13:46:00Z"
+                        temp: 85.2
+                        vibration: 0.91
+                        healthState: "CRITICAL"
+                        receivedAt: "2025-12-19T13:46:02Z"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /summary:
+    get:
+      tags: [Summary]
+      operationId: getPlantSummary
+      summary: Get plant-level telemetry health summary
+      description: |
+        Returns per-plant machine health distribution and counts.
+      responses:
+        "200":
+          description: Plant-level summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlantSummaryResponse"
+              examples:
+                sample:
+                  value:
+                    plantCount: 1
+                    plants:
+                      SP1:
+                        plantId: "SP1"
+                        totalMachines: 2
+                        normalCount: 1
+                        warningCount: 0
+                        criticalCount: 1
+                        machines:
+                          M-1001:
+                            machineId: "M-1001"
+                            healthState: "NORMAL"
+                          M-2002:
+                            machineId: "M-2002"
+                            healthState: "CRITICAL"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /health:
+    get:
+      tags: [Health]
+      operationId: getTelemetryStoreHealth
+      summary: Health check
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+components:
+  schemas:
+    TelemetryCanonical:
+      type: object
+      additionalProperties: false
+      required:
+        - machineId
+        - plantId
+        - temp
+        - vibration
+      properties:
+        machineId:
+          type: string
+          example: "M-1001"
+        plantId:
+          type: string
+          example: "SP1"
+        timestamp:
+          type: string
+          description: Event timestamp from producer/MI
+          example: "2025-12-19T13:45:10Z"
+        temp:
+          type: number
+          format: double
+          example: 72.5
+        vibration:
+          type: number
+          format: double
+          example: 0.013
+
+    TelemetryReading:
+      allOf:
+        - $ref: "#/components/schemas/TelemetryCanonical"
+        - type: object
+          required: [healthState, receivedAt]
+          properties:
+            healthState:
+              type: string
+              enum: [NORMAL, WARNING, CRITICAL]
+              example: "NORMAL"
+            receivedAt:
+              type: string
+              format: date-time
+              example: "2025-12-19T13:45:12Z"
+
+    AlertEvent:
+      type: object
+      additionalProperties: false
+      required: [type, severity, message, machineId, plantId]
+      properties:
+        type:
+          type: string
+          example: "TEMP_THRESHOLD_BREACHED"
+        severity:
+          type: string
+          example: "HIGH"
+        message:
+          type: string
+        machineId:
+          type: string
+        plantId:
+          type: string
+
+    TelemetryStoreResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - machineId
+        - plantId
+        - healthState
+        - alertsTriggered
+        - events
+      properties:
+        status:
+          type: string
+          example: "stored"
+        machineId:
+          type: string
+        plantId:
+          type: string
+        healthState:
+          type: string
+          enum: [NORMAL, WARNING, CRITICAL]
+        alertsTriggered:
+          type: integer
+          minimum: 0
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/AlertEvent"
+
+    LastReadingsResponse:
+      type: object
+      additionalProperties: false
+      required: [count, readings]
+      properties:
+        count:
+          type: integer
+        readings:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/TelemetryReading"
+
+    PlantSummaryResponse:
+      type: object
+      additionalProperties: false
+      required: [plantCount, plants]
+      properties:
+        plantCount:
+          type: integer
+        plants:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/PlantSummary"
+
+    PlantSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - plantId
+        - totalMachines
+        - normalCount
+        - warningCount
+        - criticalCount
+        - machines
+      properties:
+        plantId:
+          type: string
+          example: "SP1"
+        totalMachines:
+          type: integer
+        normalCount:
+          type: integer
+        warningCount:
+          type: integer
+        criticalCount:
+          type: integer
+        machines:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/MachineHealth"
+
+    MachineHealth:
+      type: object
+      additionalProperties: false
+      required: [machineId, healthState]
+      properties:
+        machineId:
+          type: string
+        healthState:
+          type: string
+          enum: [NORMAL, WARNING, CRITICAL]
+
+    HealthResponse:
+      type: object
+      additionalProperties: false
+      required: [status, service]
+      properties:
+        status:
+          type: string
+          example: "UP"
+        service:
+          type: string
+          example: "telemetry-store"
+
+    Error:
+      type: object
+      additionalProperties: true
+      properties:
+        error:
+          type: string
+          example: "Invalid JSON"
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true

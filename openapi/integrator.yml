@@ -1,0 +1,317 @@
+openapi: 3.0.3
+info:
+  title: WSO2 Internal Integrator APIs
+  version: 1.0.0
+  description: |
+    OpenAPI spec inferred from the provided WSO2 Synapse API XMLs:
+    - MachineHealthService (context: /internal/machine-health)
+    - OrderCompositeAPI (context: /internal/orders)
+
+servers:
+  - url: /
+    description: Relative base (set to your gateway host)
+
+tags:
+  - name: MachineHealthService
+    description: Machine telemetry ingestion and reporting
+  - name: OrderCompositeAPI
+    description: Composite order fetch (ERP + MES)
+
+paths:
+  /internal/machine-health/telemetry:
+    post:
+      tags: [MachineHealthService]
+      operationId: ingestTelemetry
+      summary: HTTP telemetry ingestion
+      description: |
+        Accepts telemetry payload, normalizes it internally, forwards to telemetry-store,
+        and returns an acknowledgement response.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TelemetryIngestRequest"
+            examples:
+              sample:
+                value:
+                  machine: "M-1001"
+                  plant: "PLANT-01"
+                  ts: "2025-12-19T13:45:10Z"
+                  temperature: 72.5
+                  vibration: 0.013
+      responses:
+        "202":
+          description: Telemetry accepted (acknowledgement)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TelemetryAck"
+              examples:
+                accepted:
+                  value:
+                    status: accepted
+                    message: Telemetry received
+        "400":
+          description: Invalid request (schema/validation issues)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /internal/machine-health/telemetry/last-readings:
+    get:
+      tags: [MachineHealthService]
+      operationId: getLastReadings
+      summary: Latest readings per machine
+      description: |
+        Returns latest telemetry readings per machine.
+        (WSO2 routes to backend path http://telemetry-store:9100/last-readings)
+      responses:
+        "200":
+          description: Last readings per machine
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LastReadingsResponse"
+              examples:
+                sample:
+                  value:
+                    readings:
+                      - machineId: "M-1001"
+                        plantId: "PLANT-01"
+                        timestamp: "2025-12-19T13:45:10Z"
+                        temp: 72.5
+                        vibration: 0.013
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /internal/machine-health/summary:
+    get:
+      tags: [MachineHealthService]
+      operationId: getPlantSummary
+      summary: Plant-level health summary
+      description: |
+        Returns a plant-level summary from telemetry-store.
+      responses:
+        "200":
+          description: Plant health summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlantSummaryResponse"
+              examples:
+                sample:
+                  value:
+                    plantId: "PLANT-01"
+                    window:
+                      from: "2025-12-19T00:00:00Z"
+                      to: "2025-12-19T23:59:59Z"
+                    machines:
+                      total: 42
+                      healthy: 39
+                      warning: 2
+                      critical: 1
+                    metrics:
+                      avgTemp: 68.2
+                      avgVibration: 0.009
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /internal/orders/orders/{id}:
+    get:
+      tags: [OrderCompositeAPI]
+      operationId: getCompositeOrder
+      summary: Composite order payload (ERP + MES)
+      description: |
+        Fetches an order from ERP and MES backends and returns a composite JSON payload:
+        { orderId, erpRaw, mesRaw } where erpRaw and mesRaw are the raw backend JSON bodies.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Order identifier
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Composite order response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompositeOrderResponse"
+              examples:
+                sample:
+                  value:
+                    orderId: "ORD-12345"
+                    erpRaw:
+                      orderNumber: "ORD-12345"
+                      status: "RELEASED"
+                      customer: "ACME"
+                    mesRaw:
+                      orderNumber: "ORD-12345"
+                      line: "L-2"
+                      progressPct: 55
+        "404":
+          description: Order not found (from one or both backends)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+components:
+  schemas:
+    TelemetryIngestRequest:
+      type: object
+      additionalProperties: false
+      required: [machine, plant, ts, temperature, vibration]
+      properties:
+        machine:
+          type: string
+          description: Machine identifier
+          example: "M-1001"
+        plant:
+          type: string
+          description: Plant identifier
+          example: "PLANT-01"
+        ts:
+          type: string
+          description: Timestamp of the reading (as sent by client)
+          example: "2025-12-19T13:45:10Z"
+        temperature:
+          type: number
+          format: double
+          description: Temperature reading
+          example: 72.5
+        vibration:
+          type: number
+          format: double
+          description: Vibration reading
+          example: 0.013
+
+    TelemetryCanonical:
+      type: object
+      additionalProperties: false
+      required: [machineId, plantId, timestamp, temp, vibration]
+      description: Canonical telemetry model after WSO2 normalization (internal).
+      properties:
+        machineId:
+          type: string
+        plantId:
+          type: string
+        timestamp:
+          type: string
+        temp:
+          type: number
+          format: double
+        vibration:
+          type: number
+          format: double
+
+    TelemetryAck:
+      type: object
+      additionalProperties: false
+      required: [status, message]
+      properties:
+        status:
+          type: string
+          example: accepted
+        message:
+          type: string
+          example: Telemetry received
+
+    LastReading:
+      allOf:
+        - $ref: "#/components/schemas/TelemetryCanonical"
+
+    LastReadingsResponse:
+      type: object
+      description: Response is backend-defined; represented here as a list wrapper.
+      properties:
+        readings:
+          type: array
+          items:
+            $ref: "#/components/schemas/LastReading"
+      additionalProperties: true
+
+    PlantSummaryResponse:
+      type: object
+      description: Backend-defined summary payload; schema is modeled generically.
+      additionalProperties: true
+      properties:
+        plantId:
+          type: string
+        window:
+          type: object
+          additionalProperties: true
+          properties:
+            from:
+              type: string
+            to:
+              type: string
+        machines:
+          type: object
+          additionalProperties: true
+          properties:
+            total:
+              type: integer
+            healthy:
+              type: integer
+            warning:
+              type: integer
+            critical:
+              type: integer
+        metrics:
+          type: object
+          additionalProperties: true
+
+    CompositeOrderResponse:
+      type: object
+      additionalProperties: false
+      required: [orderId, erpRaw, mesRaw]
+      properties:
+        orderId:
+          type: string
+          description: Order identifier from path variable
+        erpRaw:
+          type: object
+          description: Raw ERP backend JSON payload (unmodeled)
+          additionalProperties: true
+        mesRaw:
+          type: object
+          description: Raw MES backend JSON payload (unmodeled)
+          additionalProperties: true
+
+    Error:
+      type: object
+      additionalProperties: true
+      properties:
+        code:
+          type: string
+          example: "ERROR"
+        message:
+          type: string
+          example: "An error occurred"
+        details:
+          type: object
+          additionalProperties: true
