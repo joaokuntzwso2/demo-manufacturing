@@ -1,240 +1,219 @@
 openapi: 3.0.3
 info:
-  title: OEM Operations Visibility Agent API
-  version: 1.0.0
-  description: |
-    Ballerina HTTP service exposing the OEM Operations Visibility agent.
+  title: OEMOperationsVisibilityAgentAPI
+  description: >
+    OEM Operations Visibility Agent endpoint for discrete manufacturing,
+    used as a Custom AI Provider in WSO2 API Manager.
 
-    Notes:
-    - Base path: /v1
-    - POST /v1/chat accepts an AgentRequest and returns AgentResponse on success.
-    - Correlation ID:
-      - Client may send X-Correlation-Id header.
-      - Service echoes it back; if absent/blank, service generates one and returns it.
-    - Errors return an ErrorBody with HTTP 400 or 500.
+    This API exposes a single chat endpoint that answers operational questions
+    about orders (ERP+MES context) and machine/plant health (telemetry summary),
+    and returns LLM usage metadata for analytics.
+  version: 1.0.0
 
 servers:
-  - url: /
-    description: Relative base (set to your gateway host)
-  - url: http://localhost:{port}
-    description: Local/dev
-    variables:
-      port:
-        default: "8080"
+  - url: 'http://localhost:8293'
+    description: Replace with the actual base URL of the OEM Agent service
 
-tags:
-  - name: Agent
-    description: Chat/agent execution
-  - name: Health
-    description: Liveness/readiness endpoints
+security:
+  - {}
 
 paths:
   /v1/chat:
     post:
-      tags: [Agent]
-      operationId: postChat
-      summary: Run OEM Operations Visibility agent
-      description: |
-        Executes the OEM agent with the provided sessionId and message.
-        Returns the agent output message along with metadata.
-
-        Validation:
-        - sessionId must not be empty -> 400
-        - message must not be empty -> 400
-
-        Retry:
-        - Transient LLM errors may be retried once internally.
-      parameters:
-        - name: X-Correlation-Id
-          in: header
-          required: false
-          description: Optional correlation ID for tracing. Echoed back in responses.
-          schema:
-            type: string
+      summary: Chat with OEM Operations Visibility Agent
+      description: >
+        Receives a user message and a sticky sessionId, invokes the OEM agent
+        (with MI/APIM-backed tools) and returns the final answer in PT-BR,
+        together with LLM usage metadata.
+      operationId: oemChat
       requestBody:
+        description: |
+          Payload de requisição para o OEM Agent.
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/AgentRequest"
-            examples:
-              sample:
-                value:
-                  sessionId: "sess-abc-123"
-                  message: "Show me the current status of order 1001 and any machine health risks."
+              $ref: '#/components/schemas/AgentRequest'
+            example:
+              sessionId: sess-oem-1
+              message: >-
+                Pode me dar o contexto da ordem ORD-100045 e se existe algum
+                gargalo por máquina em estado CRITICAL na planta SP1?
       responses:
-        "200":
-          description: Agent executed successfully
+        '200':
+          description: Successful response from OEM Agent
           headers:
             X-Correlation-Id:
-              description: Correlation ID (echoed or generated)
+              description: Correlation ID for end-to-end traceability.
               schema:
                 type: string
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AgentResponse"
-              examples:
-                sample:
-                  value:
-                    sessionId: "sess-abc-123"
-                    agentName: "OEM-Operations-Visibility-Agent"
-                    promptVersion: "v1"
-                    message: "Order 1001 is RELEASED in ERP; MES shows 72% complete at PAINT. No critical machine alerts detected."
-        "400":
-          description: Invalid request (empty sessionId or message)
+                $ref: '#/components/schemas/AgentResponse'
+              example:
+                sessionId: sess-oem-1
+                agentName: OEMOperationsVisibilityAgent
+                promptVersion: oem-visibility-v1.0.0
+                message: >-
+                  Resumo: A ordem ORD-100045 está em execução e a planta SP1 tem
+                  1 máquina em CRITICAL que pode virar gargalo. Recomendo priorizar
+                  inspeção na M-100 antes de aumentar carga na linha.
+                llm:
+                  responseModel: gpt-4o
+                  promptTokenCount: 42
+                  completionTokenCount: 128
+                  totalTokenCount: 170
+        '400':
+          description: Invalid request
           headers:
             X-Correlation-Id:
-              description: Correlation ID (echoed or generated)
+              description: Correlation ID for end-to-end traceability.
               schema:
                 type: string
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorBody"
-              examples:
-                emptySession:
-                  value:
-                    message: "Invalid request"
-                    details: "sessionId must not be empty"
-                emptyMessage:
-                  value:
-                    message: "Agent execution failed."
-                    details: "Try again later or contact support."
-        "500":
-          description: Agent execution failed (LLM/internal error)
+                $ref: '#/components/schemas/ErrorBody'
+        '500':
+          description: Internal error during agent execution
           headers:
             X-Correlation-Id:
-              description: Correlation ID (echoed or generated)
+              description: Correlation ID for end-to-end traceability.
               schema:
                 type: string
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorBody"
-              examples:
-                error:
-                  value:
-                    message: "Agent execution failed"
-                    details: "Upstream error or model failure message"
+                $ref: '#/components/schemas/ErrorBody'
 
-  /v1/health:
-    get:
-      tags: [Health]
-      operationId: getHealth
-      summary: Liveness check
-      responses:
-        "200":
-          description: Service is up
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HealthResponse"
-              examples:
-                up:
-                  value:
-                    status: "UP"
-                    component: "OEM-Operations-Visibility-Agent"
+      # Explicitly no security at operation level
+      security:
+        - {}
 
-  /v1/health/ready:
-    get:
-      tags: [Health]
-      operationId: getReady
-      summary: Readiness check
-      description: Includes dependency hints.
-      responses:
-        "200":
-          description: Service is ready
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ReadyResponse"
-              examples:
-                up:
-                  value:
-                    status: "UP"
-                    component: "OEM-Operations-Visibility-Agent"
-                    dependencies:
-                      - "OpenAI"
-                      - "MI/APIM-Backend"
+      x-auth-type: None
+      x-throttling-tier: Unlimited
 
 components:
   schemas:
     AgentRequest:
       type: object
-      additionalProperties: false
-      required: [sessionId, message]
+      required:
+        - sessionId
+        - message
       properties:
         sessionId:
           type: string
-          description: Client-managed conversation/session identifier
-          minLength: 1
-          example: "sess-abc-123"
+          description: Sticky session identifier for LLM memory.
         message:
           type: string
-          description: User message to the agent
-          minLength: 1
-          example: "What is the status of order 1001?"
+          description: User's question (the agent answers in PT-BR).
+
+    LlmUsage:
+      type: object
+      required:
+        - responseModel
+        - promptTokenCount
+        - completionTokenCount
+        - totalTokenCount
+      properties:
+        responseModel:
+          type: string
+          example: gpt-4o
+        promptTokenCount:
+          type: integer
+          format: int32
+          example: 42
+        completionTokenCount:
+          type: integer
+          format: int32
+          example: 128
+        totalTokenCount:
+          type: integer
+          format: int32
+          example: 170
+        remainingTokenCount:
+          type: integer
+          format: int32
+          nullable: true
+          example: 980000
+      description: >
+        LLM usage metadata for analytics. Values are estimated by the backend service.
 
     AgentResponse:
       type: object
-      additionalProperties: false
-      required: [sessionId, agentName, promptVersion, message]
+      required:
+        - sessionId
+        - agentName
+        - promptVersion
+        - message
       properties:
         sessionId:
           type: string
-          example: "sess-abc-123"
         agentName:
           type: string
-          description: Agent identifier/name
-          example: "OEM-Operations-Visibility-Agent"
+          example: OEMOperationsVisibilityAgent
         promptVersion:
           type: string
-          description: Prompt version used by the agent
-          example: "v1"
+          example: oem-visibility-v1.0.0
         message:
           type: string
-          description: Agent output message
-          example: "..."
+        llm:
+          $ref: '#/components/schemas/LlmUsage'
 
+    # IMPORTANT FIX:
+    # Replace boolean additionalProperties:true (if ever added later) with Schema objects ({}).
+    # Here we make it explicitly safe for APIM API Product generation by setting {}.
     ErrorBody:
       type: object
-      additionalProperties: false
-      required: [message, details]
+      required:
+        - message
+      additionalProperties: {}
       properties:
         message:
           type: string
-          example: "Agent execution failed"
         details:
           type: string
-          example: "Detailed error message"
+          nullable: true
 
-    HealthResponse:
-      type: object
-      additionalProperties: false
-      required: [status, component]
-      properties:
-        status:
-          type: string
-          example: "UP"
-        component:
-          type: string
-          example: "OEM-Operations-Visibility-Agent"
+x-wso2-api-key-header: ApiKey
+x-wso2-auth-header: Authorization
 
-    ReadyResponse:
-      type: object
-      additionalProperties: false
-      required: [status, component, dependencies]
-      properties:
-        status:
-          type: string
-          example: "UP"
-        component:
-          type: string
-          example: "OEM-Operations-Visibility-Agent"
-        dependencies:
-          type: array
-          items:
-            type: string
-          example: ["OpenAI", "MI/APIM-Backend"]
+x-wso2-cors:
+  corsConfigurationEnabled: false
+  accessControlAllowOrigins:
+    - '*'
+  accessControlAllowCredentials: false
+  accessControlAllowHeaders:
+    - authorization
+    - Access-Control-Allow-Origin
+    - Content-Type
+    - SOAPAction
+    - apikey
+    - Internal-Key
+  accessControlAllowMethods:
+    - GET
+    - PUT
+    - POST
+    - DELETE
+    - PATCH
+    - OPTIONS
 
+x-wso2-production-endpoints:
+  urls:
+    - 'http://localhost:8293'
+  type: http
+
+x-wso2-basePath: /oem-operations-visibility/1.0.0
+
+x-wso2-transports:
+  - http
+  - https
+
+x-wso2-application-security:
+  security-types: []
+  optional: true
+
+x-wso2-response-cache:
+  enabled: false
+  cacheTimeoutInSeconds: 300

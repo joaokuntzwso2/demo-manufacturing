@@ -103,6 +103,7 @@ public isolated function handleAgentRequest(
 
     string|ai:Error result = agent->run(message, sessionId = sessionId);
 
+    // Optional single retry for transient LLM errors.
     if result is ai:Error && isTransientLLMError(result) {
         log:printWarn("Transient LLM error, retrying once...",
             'value = { "sessionId": sessionId, "correlationId": correlationId, "error": result.message() });
@@ -122,15 +123,24 @@ public isolated function handleAgentRequest(
             }
         );
 
+        // LLM usage (token estimation) — same pattern as the Pharma project.
+        LlmUsage llmUsage = buildLlmUsage(
+            OPENAI_MODEL.toString(),
+            message,
+            result
+        );
+
         AgentResponse resp = {
             sessionId: sessionId,
             agentName: agentName,
             promptVersion: promptVersion,
-            message: result
+            message: result,
+            llm: llmUsage
         };
         return buildSuccessResponse(resp, correlationId);
     }
 
+    // Error path from agent execution
     log:printError("OEM agent execution failed",
         'error = result,
         'value = {

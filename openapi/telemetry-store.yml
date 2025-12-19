@@ -342,10 +342,9 @@ components:
         service:
           type: string
           example: "telemetry-store"
-
     Error:
       type: object
-      additionalProperties: true
+      additionalProperties: {}
       properties:
         error:
           type: string
@@ -354,4 +353,4 @@ components:
           type: string
         details:
           type: object
-          additionalProperties: true
+          additionalProperties: {}

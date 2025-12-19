@@ -268,10 +268,9 @@ components:
         service:
           type: string
           example: "erp-service"
-
     Error:
       type: object
-      additionalProperties: true
+      additionalProperties: {}
       properties:
         error:
           type: string
@@ -284,4 +283,4 @@ components:
           example: "ERROR"
         details:
           type: object
-          additionalProperties: true
+          additionalProperties: {}
