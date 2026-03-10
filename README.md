@@ -401,7 +401,7 @@ Extendable to:
 
 * SCADA
 * CMMS
-* Historian systems
+* Legacy systems
 * SAP / Oracle ERP
 * Kafka pipelines
 * streaming analytics
