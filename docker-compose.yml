@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   # --------------------------------------------------------------------------
   # MQTT broker (Mosquitto) - OT side
@@ -8,10 +6,8 @@ services:
     image: eclipse-mosquitto:2
     container_name: mqtt-broker
     ports:
-      # Host 1884 -> Container 1883 to avoid conflict with local mosquitto
       - "1884:1883"
     volumes:
-      # Use your existing mosquitto.conf
       - ./backend/docker/mqtt-broker/mosquitto.conf:/mosquitto/config/mosquitto.conf
 
   # --------------------------------------------------------------------------
@@ -67,16 +63,31 @@ services:
     environment:
       - JAVA_OPTS=-Xms256m -Xmx512m
     volumes:
-      # Deploy the integration CAR
       - ./oem-visibility-demo/target/oem-visibility-demo_1.0.0.car:/home/wso2carbon/wso2mi-4.5.0/repository/deployment/server/carbonapps/oem-visibility-demo_1.0.0.car
-
-      # Add MQTT client JAR to MI classpath (used by other artifacts if needed)
       - ./oem-visibility-demo/deployment/libs/mqtt-client-0.4.0.jar:/home/wso2carbon/wso2mi-4.5.0/lib/mqtt-client-0.4.0.jar
     depends_on:
       - erp-service
       - mes-service
       - telemetry-store
       - mqtt-broker
+
+  # --------------------------------------------------------------------------
+  # WSO2 API Manager 4.6.0 - all-in-one
+  # --------------------------------------------------------------------------
+  apim:
+    image: wso2/wso2am:4.6.0
+    container_name: apim
+    ports:
+      - "9443:9443"   # Publisher / Dev Portal / Admin / Carbon
+      - "8243:8243"   # Gateway HTTPS
+      - "8280:8280"   # Gateway HTTP
+    environment:
+      - JAVA_OPTS=-Xms512m -Xmx1024m
+    depends_on:
+      - mi
+    # Optional volume if you want custom APIM config:
+    # volumes:
+    #   - ./apim/deployment.toml:/home/wso2carbon/wso2am-4.6.0/repository/conf/deployment.toml
 
   # --------------------------------------------------------------------------
   # OEM Visibility Agent (Ballerina) - BI / AI layer
@@ -93,8 +104,6 @@ services:
       - OPENAI_MODEL=GPT_4O
       - BACKEND_BASE_URL=http://mi:8290
       - HTTP_LISTENER_PORT=8293
-
-      # Limit JVM heap for Ballerina (tune as needed)
       - BALJAVA_OPTS=-Xms256m -Xmx512m
     depends_on:
       - mi
