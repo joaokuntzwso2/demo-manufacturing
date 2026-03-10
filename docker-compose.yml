@@ -83,11 +83,12 @@ services:
       - "8280:8280"   # Gateway HTTP
     environment:
       - JAVA_OPTS=-Xms512m -Xmx1024m
+    env_file:
+      - ./apim/.env.apim.local
+    volumes:
+      - ./apim/deployment.toml:/home/wso2carbon/wso2am-4.6.0/repository/conf/deployment.toml
     depends_on:
       - mi
-    # Optional volume if you want custom APIM config:
-    # volumes:
-    #   - ./apim/deployment.toml:/home/wso2carbon/wso2am-4.6.0/repository/conf/deployment.toml
 
   # --------------------------------------------------------------------------
   # OEM Visibility Agent (Ballerina) - BI / AI layer
