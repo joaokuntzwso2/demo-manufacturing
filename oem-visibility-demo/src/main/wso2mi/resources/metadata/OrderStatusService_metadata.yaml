@@ -1,10 +1,10 @@
 ---
 key: "OrderStatusService-1.0.0"
-name : "OrderStatusService"
-displayName : "OrderStatusService"
-description: "OrderStatusService"
+name: "OrderStatusService"
+displayName: "OrderStatusService"
+description: "Order status lookup service"
 version: "1.0.0"
-serviceUrl: "https://{MI_HOST}:{MI_PORT}/orderstatusservice"
+serviceUrl: "http://{MI_HOST}:{MI_PORT}/internal/orders/status"
 definitionType: "OAS3"
 securityType: "BASIC"
 mutualSSLEnabled: false

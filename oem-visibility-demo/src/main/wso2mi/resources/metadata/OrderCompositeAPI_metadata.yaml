@@ -1,10 +1,10 @@
 ---
 key: "OrderCompositeAPI-1.0.0"
-name : "OrderCompositeAPI"
-displayName : "OrderCompositeAPI"
-description: "OrderCompositeAPI"
+name: "OrderCompositeAPI"
+displayName: "OrderCompositeAPI"
+description: "Composite API combining ERP and MES order information"
 version: "1.0.0"
-serviceUrl: "https://{MI_HOST}:{MI_PORT}/ordercompositeapi"
+serviceUrl: "http://{MI_HOST}:{MI_PORT}/internal/orders"
 definitionType: "OAS3"
 securityType: "BASIC"
 mutualSSLEnabled: false

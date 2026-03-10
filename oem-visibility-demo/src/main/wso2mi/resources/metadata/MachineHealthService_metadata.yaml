@@ -4,7 +4,7 @@ name : "MachineHealthService"
 displayName : "MachineHealthService"
 description: "MachineHealthService"
 version: "1.0.0"
-serviceUrl: "https://{MI_HOST}:{MI_PORT}/machinehealthservice"
+serviceUrl: "http://{MI_HOST}:{MI_PORT}/internal/machine-health"
 definitionType: "OAS3"
 securityType: "BASIC"
 mutualSSLEnabled: false
