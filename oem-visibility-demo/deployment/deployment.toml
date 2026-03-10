@@ -17,6 +17,12 @@ password = "wso2carbon"
 alias = "symmetric.key.value"
 algorithm = "AES"
 
+[[service_catalog]]
+apim_host = "https://apim:9443"
+enable = true
+username = "admin"
+password = "admin"
+
 ## Following are set of example configs. Please refer docs for complete set of configurations.
 
 # [transport.http]

@@ -53,25 +53,6 @@ services:
       - "9100:9100"
 
   # --------------------------------------------------------------------------
-  # WSO2 Micro Integrator - OEM Visibility flows
-  # --------------------------------------------------------------------------
-  mi:
-    image: wso2/wso2mi:4.5.0
-    container_name: mi
-    ports:
-      - "8290:8290"
-    environment:
-      - JAVA_OPTS=-Xms256m -Xmx512m
-    volumes:
-      - ./oem-visibility-demo/target/oem-visibility-demo_1.0.0.car:/home/wso2carbon/wso2mi-4.5.0/repository/deployment/server/carbonapps/oem-visibility-demo_1.0.0.car
-      - ./oem-visibility-demo/deployment/libs/mqtt-client-0.4.0.jar:/home/wso2carbon/wso2mi-4.5.0/lib/mqtt-client-0.4.0.jar
-    depends_on:
-      - erp-service
-      - mes-service
-      - telemetry-store
-      - mqtt-broker
-
-  # --------------------------------------------------------------------------
   # WSO2 API Manager 4.6.0 - all-in-one
   # --------------------------------------------------------------------------
   apim:
@@ -87,8 +68,27 @@ services:
       - ./apim/.env.apim.local
     volumes:
       - ./apim/deployment.toml:/home/wso2carbon/wso2am-4.6.0/repository/conf/deployment.toml
+
+  # --------------------------------------------------------------------------
+  # WSO2 Micro Integrator - OEM Visibility flows
+  # --------------------------------------------------------------------------
+  mi:
+    image: wso2/wso2mi:4.5.0
+    container_name: mi
+    ports:
+      - "8290:8290"
+    environment:
+      - JAVA_OPTS=-Xms256m -Xmx512m
+    volumes:
+      - ./oem-visibility-demo/target/oem-visibility-demo_1.0.0.car:/home/wso2carbon/wso2mi-4.5.0/repository/deployment/server/carbonapps/oem-visibility-demo_1.0.0.car
+      - ./oem-visibility-demo/deployment/libs/mqtt-client-0.4.0.jar:/home/wso2carbon/wso2mi-4.5.0/lib/mqtt-client-0.4.0.jar
+      - ./oem-visibility-demo/deployment/deployment.toml:/home/wso2carbon/wso2mi-4.5.0/conf/deployment.toml
     depends_on:
-      - mi
+      - erp-service
+      - mes-service
+      - telemetry-store
+      - mqtt-broker
+      - apim
 
   # --------------------------------------------------------------------------
   # OEM Visibility Agent (Ballerina) - BI / AI layer
