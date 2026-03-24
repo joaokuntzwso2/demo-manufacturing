@@ -8,7 +8,7 @@ public configurable ai:OPEN_AI_MODEL_NAMES OPENAI_MODEL = ai:GPT_4O;
 
 // Public agent observability names and versions
 public configurable string OEM_AGENT_NAME = "OEMOperationsVisibilityAgent";
-public const string OEM_PROMPT_VERSION = "oem-visibility-v1.0.0";
+public const string OEM_PROMPT_VERSION = "oem-visibility-v1.1.0";
 
 // HTTP listener port for the BI agent API.
 public configurable int HTTP_LISTENER_PORT = 8293;

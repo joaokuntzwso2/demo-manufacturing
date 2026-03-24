@@ -1,3 +1,4 @@
+````markdown
 # **OEM Visibility Demo – Unified Manufacturing Operations, Telemetry Intelligence & Agentic Insights**
 
 ### *Powered by WSO2 Micro Integrator, API Manager, MQTT, Node.js Services & AI Agent Layer*
@@ -33,9 +34,9 @@ Bring siloed systems (ERP, MES, IoT telemetry) into a single **integration backb
 
 ### ✔ Provide a digital thread across systems
 
-```
+```text
 Order → Production → Machine Health → Alerts
-```
+````
 
 ### ✔ Empower supervisors and analysts with AI
 
@@ -54,192 +55,317 @@ Using WSO2 technologies for:
 
 ---
 
-# 🏗 **2. System Architecture Overview**
-
-```
-                         +-----------------------+
-                         |      ERP Service      |
-                         |   http://localhost:9001
-                         +-----------------------+
-                                   |
-                                   |
-                         +-----------------------+
-                         |      MES Service      |
-                         |   http://localhost:9002
-                         +-----------------------+
-                                   |
-                                   v
-+----------------------------------------------------------------+
-|              WSO2 MICRO INTEGRATOR (Integration Layer)         |
-|                                                                |
-| Facade APIs                                                    |
-|                                                                |
-| GET  /internal/orders/orders/{id}                              |
-|      ↳ Composite orchestration: ERP → MES → JSON merge         |
-|                                                                |
-| POST /internal/machine-health/telemetry                        |
-|      ↳ Normalize telemetry → Telemetry Store                   |
-|                                                                |
-| GET  /internal/machine-health/telemetry/last-readings          |
-| GET  /internal/machine-health/summary                          |
-|                                                                |
-| MQTT Inbound                                                   |
-| Topic: oem/telemetry/{plant}/{machine}                         |
-| Runs TelemetryNormalizationSeq                                 |
-+----------------------------------------------------------------+
-                                   |
-                                   v
-                      +------------------------------+
-                      |     Telemetry Store Service  |
-                      |   http://localhost:9100      |
-                      |                              |
-                      | • Stores latest readings     |
-                      | • Machine health state       |
-                      | • Simulated alert events     |
-                      +------------------------------+
-
-                         ↑
-                         |
-                WSO2 API Manager
-           (Service Catalog + API Lifecycle)
-
-                         ↑
-                         |
-                 AI Agent (Ballerina)
-```
-
----
-
 # 🧠 **3. Agentic Layer – Manufacturing Operations AI Assistant**
 
-The AI assistant is implemented in **Ballerina** and uses a **tool-calling architecture** to interact with the integration layer.
+The AI assistant:
 
-The agent **never accesses backend systems directly**.
-All data flows through the **WSO2 Micro Integrator APIs**.
-
-### Capabilities
-
-The assistant can:
-
-* Retrieve **full order context** (ERP + MES)
-* Retrieve **latest telemetry readings**
-* Retrieve **plant health summary**
-* Inject telemetry events to simulate machine behavior
-* Explain operational risks
-* Identify production bottlenecks
-* Provide contextual operational insights
-
----
+* ONLY communicates in **English**
+* Uses **tool-calling via WSO2 MI APIs**
+* NEVER accesses backend systems directly
 
 ### AI Tools
 
-| Tool                    | Purpose                                         |
-| ----------------------- | ----------------------------------------------- |
-| **GetOrderContextTool** | Calls MI composite API → ERP + MES merged order |
-| **GetLastReadingsTool** | Retrieves latest machine telemetry              |
-| **GetPlantSummaryTool** | Retrieves plant-level health summary            |
-| **IngestTelemetryTool** | Injects telemetry via MI                        |
-
-Agent guarantees:
-
-✔ Responses in **Brazilian Portuguese**
-✔ Strict system prompt enforcement
-✔ Never bypasses MI
-✔ Structured error envelopes
-✔ Deterministic tool usage
-
----
-
-# 📂 **4. Repository Structure**
-
-```
-.
-├── docker-compose.yml
-├── backend/
-│   └── docker/
-│       ├── erp-service/
-│       ├── mes-service/
-│       ├── telemetry-store/
-│       ├── mqtt-broker/
-│       └── mqtt-bridge/
-│
-├── oem-visibility-demo/
-│   ├── deployment/
-│   │   ├── deployment.toml
-│   │   └── libs/
-│   │
-│   ├── src/main/wso2mi/
-│   │   ├── artifacts/
-│   │   │   ├── apis/
-│   │   │   ├── sequences/
-│   │   │   ├── endpoints/
-│   │   │   └── inbound-endpoints/
-│   │   │
-│   │   └── resources/
-│   │       ├── api-definitions/
-│   │       └── metadata/
-│   │
-│   └── target/
-│       └── oem-visibility-demo_1.0.0.car
-│
-├── oem_visibility_agent/
-│   ├── agents.bal
-│   ├── tools.bal
-│   ├── main.bal
-│   └── types.bal
-│
-└── openapi/
-```
+| Tool                | Purpose                  |
+| ------------------- | ------------------------ |
+| GetOrderContextTool | ERP + MES composite      |
+| GetLastReadingsTool | Latest telemetry         |
+| GetPlantSummaryTool | Plant health aggregation |
+| IngestTelemetryTool | Inject telemetry         |
 
 ---
 
 # 🚀 **5. Running the Demo**
 
-From the **repository root**, run:
-
 ```bash
-docker compose up --build
-```
-
-The entire environment will start automatically.
-
----
-
-### Available services
-
-| Service               | Port | Description                        |
-| --------------------- | ---- | ---------------------------------- |
-| MQTT Broker           | 1884 | Machine telemetry ingestion        |
-| ERP Service           | 9001 | Order header information           |
-| MES Service           | 9002 | Production execution status        |
-| Telemetry Store       | 9100 | Machine health storage             |
-| WSO2 Micro Integrator | 8290 | Integration layer                  |
-| WSO2 API Manager      | 9443 | API Publisher / Dev Portal         |
-| AI Agent              | 8293 | Manufacturing operations assistant |
-
----
-
-# 🧪 **6. Testing End-to-End**
-
-## Publish MQTT telemetry
-
-```bash
-mosquitto_pub -h localhost -p 1884 \
--t "oem/telemetry/SP1/M-100" \
--m '{"machine":"M-100","plant":"SP1","ts":"2025-12-04T10:05:00Z","temperature":81.3,"vibration":0.9}'
+docker compose up -d --build
+docker compose ps
 ```
 
 ---
 
-## Retrieve telemetry readings
+# 🧪 **6. End-to-End Test Guide**
+
+---
+
+## 6.1 Quick Health Checks
 
 ```bash
-curl -s http://localhost:8290/internal/machine-health/telemetry/last-readings | jq
+curl -s http://localhost:9001/health | jq
+curl -s http://localhost:9002/health | jq
+curl -s http://localhost:9100/health | jq
+curl -s http://localhost:8290/internal/machine-health/summary | jq
+curl -s http://localhost:8293/v1/health | jq
+curl -s http://localhost:8293/v1/health/ready | jq
+```
+
+### Expected Behavior
+
+| Component         | Expected             |
+| ----------------- | -------------------- |
+| ERP/MES/Telemetry | `status: UP`         |
+| MI                | returns summary JSON |
+| Agent             | `status: UP`         |
+
+---
+
+## 6.2 Backend Tests
+
+### ERP
+
+```bash
+curl -s http://localhost:9001/erp/orders | jq
+```
+
+**Expected:** list of demo orders
+
+```bash
+curl -s http://localhost:9001/erp/orders/1001 | jq
+```
+
+**Expected:** full ERP order
+
+---
+
+### MES
+
+```bash
+curl -s http://localhost:9002/mes/orders/1001 | jq
+```
+
+**Expected:** execution details (station, OEE, completion %)
+
+---
+
+### Telemetry Store
+
+#### Normal telemetry
+
+```bash
+curl -s -X POST http://localhost:9100/telemetry \
+-H 'Content-Type: application/json' \
+-d '{"machineId":"M-100","plantId":"SP1","timestamp":"2026-03-24T10:00:00Z","temp":72.4,"vibration":0.31}' | jq
+```
+
+**Expected:**
+
+* status: stored
+* healthState: NORMAL
+
+---
+
+#### Critical telemetry
+
+```bash
+curl -s -X POST http://localhost:9100/telemetry \
+-H 'Content-Type: application/json' \
+-d '{"machineId":"M-200","plantId":"SP1","timestamp":"2026-03-24T10:05:00Z","temp":84.2,"vibration":0.91}' | jq
+```
+
+**Expected:**
+
+* healthState: CRITICAL
+* alert events triggered
+
+---
+
+## 6.3 WSO2 MI Tests
+
+### Telemetry via MI
+
+```bash
+curl -s -X POST http://localhost:8290/internal/machine-health/telemetry \
+-H 'Content-Type: application/json' \
+-d '{"machine":"M-101","plant":"SP1","ts":"2026-03-24T10:10:00Z","temperature":65.5,"vibration":0.21}' | jq
+```
+
+**Flow:** Host → MI → Telemetry Store
+**Expected:** `"status": "accepted"`
+
+---
+
+### Composite Order API
+
+```bash
+curl -s http://localhost:8290/internal/orders/orders/1001 | jq
+```
+
+**Flow:** MI → ERP + MES
+**Expected:**
+
+```json
+{
+  "orderId": "1001",
+  "erpRaw": {...},
+  "mesRaw": {...}
+}
 ```
 
 ---
 
-## Retrieve plant health summary
+## 6.4 MQTT End-to-End
+
+```bash
+docker exec -i mqtt-broker mosquitto_pub \
+-h localhost -p 1883 \
+-t oem/telemetry/SP1/M-300 \
+-m '{"machine":"M-300","plant":"SP1","ts":"2026-03-24T10:20:00Z","temperature":58.4,"vibration":0.18}'
+```
+
+**Flow:** MQTT → Bridge/MI → Telemetry Store
+**Expected:** machine appears in readings
+
+---
+
+# 🤖 **7. AI Agent Tests (ENGLISH ONLY)**
+
+---
+
+## Chat Format
+
+```bash
+curl -s -X POST http://localhost:8293/v1/chat \
+-H 'Content-Type: application/json' \
+-H 'X-Correlation-Id: vp-demo-001' \
+-d '{
+  "sessionId":"demo-session-1",
+  "message":"Give me an executive summary of plant SP1."
+}' | jq
+```
+
+**Expected Response Structure:**
+
+```json
+{
+  "sessionId": "...",
+  "agentName": "...",
+  "promptVersion": "...",
+  "message": "...",
+  "llm": {...}
+}
+```
+
+---
+
+## Demo Prompts
+
+---
+
+### A. Plant Summary
+
+```bash
+curl -s -X POST http://localhost:8293/v1/chat \
+-H 'Content-Type: application/json' \
+-d '{
+  "sessionId":"demo-session-plant",
+  "message":"Give me an executive summary of the operational health of plant SP1."
+}' | jq
+```
+
+**Expected:**
+
+* High-level plant overview
+* Machine distribution (NORMAL/WARNING/CRITICAL)
+
+---
+
+### B. Critical Machines
+
+```bash
+curl -s -X POST http://localhost:8293/v1/chat \
+-H 'Content-Type: application/json' \
+-d '{
+  "sessionId":"demo-session-plant",
+  "message":"Which machines are in warning or critical state in plant SP1 and why?"
+}' | jq
+```
+
+**Expected:**
+
+* List of machines
+* Explanation (temperature / vibration)
+
+---
+
+### C. Operational Recommendations
+
+```bash
+curl -s -X POST http://localhost:8293/v1/chat \
+-H 'Content-Type: application/json' \
+-d '{
+  "sessionId":"demo-session-plant",
+  "message":"Based on the current telemetry, what operational actions do you recommend to avoid bottlenecks in SP1?"
+}' | jq
+```
+
+**Expected:**
+
+* Actionable insights
+* Maintenance / load balancing suggestions
+
+---
+
+### D. Order Context
+
+```bash
+curl -s -X POST http://localhost:8293/v1/chat \
+-H 'Content-Type: application/json' \
+-d '{
+  "sessionId":"demo-session-order",
+  "message":"Explain the operational context of order 1001."
+}' | jq
+```
+
+**Expected:**
+
+* Customer
+* Plant
+* Priority
+* MES execution
+
+---
+
+### E. Executive Order Summary
+
+```bash
+curl -s -X POST http://localhost:8293/v1/chat \
+-H 'Content-Type: application/json' \
+-d '{
+  "sessionId":"demo-session-order",
+  "message":"Summarize order 1001 for an executive: customer, plant, priority, dates, and execution status."
+}' | jq
+```
+
+---
+
+### F. Risk vs Priority Order
+
+```bash
+curl -s -X POST http://localhost:8293/v1/chat \
+-H 'Content-Type: application/json' \
+-d '{
+  "sessionId":"demo-session-order",
+  "message":"Is there any operational risk that could impact a high priority order like 1001?"
+}' | jq
+```
+
+---
+
+### G. Inject Telemetry via Agent
+
+```bash
+curl -s -X POST http://localhost:8293/v1/chat \
+-H 'Content-Type: application/json' \
+-d '{
+  "sessionId":"demo-session-sim",
+  "message":"Register telemetry for machine M-900 in plant SP1 with temperature 82.5 and vibration 0.91, then explain the operational impact."
+}' | jq
+```
+
+**Flow:** Agent → MI → Telemetry Store
+
+---
+
+### Confirm via MI
 
 ```bash
 curl -s http://localhost:8290/internal/machine-health/summary | jq
@@ -247,161 +373,22 @@ curl -s http://localhost:8290/internal/machine-health/summary | jq
 
 ---
 
-## Unified order view
-
-```bash
-curl -s http://localhost:8290/internal/orders/orders/1001 | jq
-```
-
----
-
-## HTTP telemetry ingestion
-
-```bash
-curl -s -X POST http://localhost:8290/internal/machine-health/telemetry \
--H "Content-Type: application/json" \
--d '{"machine":"M-200","plant":"SP1","ts":"2025-12-04T11:00Z","temperature":70,"vibration":0.14}'
-```
-
----
-
-# 🤖 **7. Testing the AI Agent**
-
-### Agent health
-
-```bash
-curl -s http://localhost:8293/v1/health | jq
-```
-
----
-
-### Ask about an order
+### H. Follow-up
 
 ```bash
 curl -s -X POST http://localhost:8293/v1/chat \
--H "Content-Type: application/json" \
+-H 'Content-Type: application/json' \
 -d '{
-"sessionId": "sess1",
-"message": "Qual é o status da ordem 1001?"
-}'
+  "sessionId":"demo-session-sim",
+  "message":"Given the condition of machine M-900, what are the next recommended operational and maintenance actions?"
+}' | jq
 ```
 
 ---
 
-### Ask about plant health
+# 🏭 **9. Why This Matters**
 
-```bash
-curl -s -X POST http://localhost:8293/v1/chat \
--H "Content-Type: application/json" \
--d '{
-"sessionId": "sess2",
-"message": "Resumo da saúde das máquinas da planta SP1."
-}'
-```
-
----
-
-### Inject telemetry via AI
-
-```bash
-curl -s -X POST http://localhost:8293/v1/chat \
--H "Content-Type: application/json" \
--d '{
-"sessionId": "sess3",
-"message": "Injete telemetria na máquina M-300 com temperatura 92."
-}'
-```
-
----
-
-# 🛠 **8. WSO2 Integration Components**
-
-### APIs
-
-| Artifact                   | Description                     |
-| -------------------------- | ------------------------------- |
-| `OrderCompositeAPI.xml`    | Composite call to ERP + MES     |
-| `MachineHealthService.xml` | Telemetry ingestion & analytics |
-
----
-
-### MQTT Inbound
-
-```
-TelemetryMQTTInbound.xml
-```
-
-Consumes telemetry from:
-
-```
-oem/telemetry/{plant}/{machine}
-```
-
----
-
-### Sequences
-
-```
-TelemetryNormalizationSeq.xml
-CommonInSeq.xml
-CommonOutSeq.xml
-CommonFaultSeq.xml
-```
-
----
-
-### Endpoints
-
-```
-ERPServiceEP.xml
-MESServiceEP.xml
-```
-
----
-
-### API Manager Service Catalog
-
-The Micro Integrator publishes deployed services to **WSO2 API Manager Service Catalog**, allowing:
-
-* API creation from existing integrations
-* governance and lifecycle management
-* secure exposure of backend services
-
----
-
-# 🏭 **9. Why This Matters for Industrial Enterprises**
-
-### OT / IT Convergence
-
-Factory → MES → ERP → Integration → Analytics.
-
-### Operational Visibility
-
-Production status + machine state + alerts in one digital thread.
-
-### Predictive Maintenance Foundation
-
-Telemetry analysis → alerts → AI insights → human action.
-
-### Digital Thread Enablement
-
-Order → Routing → Telemetry → Execution → Insights.
-
-### AI-Assisted Operations
-
-Natural-language operational intelligence for:
-
-* production supervisors
-* maintenance engineers
-* quality teams
-
-### Composable Integration Architecture
-
-Extendable to:
-
-* SCADA
-* CMMS
-* Legacy systems
-* SAP / Oracle ERP
-* Kafka pipelines
-* streaming analytics
+✔ OT/IT convergence
+✔ Real-time operational visibility
+✔ AI-driven decision support
+✔ Scalable integration architecture
